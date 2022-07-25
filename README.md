@@ -1,9 +1,12 @@
-# ESP8266 WiFi Analog Clock
+# ESP8266 WiFi Analog Clock V2
 
-Migration of the ESP8266-WiFi-Analog-Clock to use Platform IO.
+Migration of the ESP8266-WiFi-Analog-Clock (https://github.com/jim11662418/ESP8266-WiFi-Analog-Clock) to use Platform IO with various library changes. 
 
 ## Changes
+* Migrated to using Platform IO
 * Migrated NTP library the new library created by the NTP library developer (gmag11/ESPNtpClient)
+* Moved to using i2c_eerom library
+
 
 ## Limitations 
 * Hardcoded Timezone to NZ
