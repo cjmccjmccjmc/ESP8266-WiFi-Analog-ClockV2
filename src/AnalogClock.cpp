@@ -29,12 +29,11 @@
 #define LOCAL_SCL D2                   // output to SCL on the EERam
 #define COIL1 D3                 // output to clock's lavet motor coil
 #define COIL2 D7                 // output to clock's lavet motor coil
+
 #define REDLED D5                // output to red part of the RGB LED
 #define GREENLED D4              // output to green part of the RGB LED
 #define BLUELED D8               // output to blue part of the RGB LED
-#define SWITCHPIN D6             // input from push button switch
 
-#define DEBOUNCE 50              // 50 milliseconds to debounce the puchbutton switch
 #define PULSETIME 30             // 30 millisecond pulse for the lavet motor
 
 
@@ -110,13 +109,12 @@ void setup() {
 
    // Note: to remove need to update schematic to swap over pins.
    ee.begin(LOCAL_SDA, LOCAL_SCL);
-   pinMode(SWITCHPIN,INPUT_PULLUP);
-   attachInterrupt(digitalPinToInterrupt(SWITCHPIN),pinInterruptISR,FALLING); // interrupt when puchbutton is pressed   
    pinMode(COIL1,OUTPUT);
    pinMode(COIL2,OUTPUT);
    pinMode(REDLED,OUTPUT);
    pinMode(GREENLED,OUTPUT);
    pinMode(BLUELED,OUTPUT);
+   
    digitalWrite(COIL1,LOW);
    digitalWrite(COIL2,LOW);
    digitalWrite(REDLED,LOW);
@@ -526,11 +524,3 @@ void syncNTPEventFunction(NTPEvent_t e){
 
 }
 
-//--------------------------------------------------------------------------
-// interrupt when the push button switch is pressed
-//--------------------------------------------------------------------------
-void pinInterruptISR() {
-   unsigned long debounce_time = millis()+DEBOUNCE;
-   while(millis() < debounce_time);               // wait 50 milliseconds for the switch contacts to stop bouncing
-   switchInterruptFlag = true;
-}
