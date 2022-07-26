@@ -6,15 +6,19 @@ Migration of the ESP8266-WiFi-Analog-Clock (https://github.com/jim11662418/ESP82
 * Migrated to using Platform IO
 * Migrated NTP library the new library created by the NTP library developer (gmag11/ESPNtpClient)
 * Moved to using i2c_eerom library
+* Now using WiFiManager to connect to Wifi network (avoids need to hardcode wifi passwords)
 
 
 ## Limitations 
 * Hardcoded Timezone to NZ
 * No saving / changes of Timezone
 * need to update the documentation
-* Wifi hardcoded using a #define 
 
 
+
+## Documentation Todos:
+
+* Describe WiFi connection setup
 
 ## Introduction
 This project uses an WEMOS D1 Mini ESP8266 module and an Arduino sketch to connect to a NTP (Network Time Protocol) server to automatically retrieve and display the local time on a inexpensive analog quartz clock. The ESP8266 reconnects to the NTP server every 15 minutes which keeps the clock accurate. The clock also automatically adjusts for daylight savings time.

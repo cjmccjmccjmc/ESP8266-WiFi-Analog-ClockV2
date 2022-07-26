@@ -10,8 +10,8 @@
 #include <Ticker.h>
 #include <ESP8266WebServer.h>
 #include "I2C_eeprom.h"
+#include <WiFiManager.h>
 
-#include "WifiDef.h"
 
 // WEMOS D1 Mini pins
 #define D0 16                    // can't use D0 to generate interrupts
@@ -38,13 +38,8 @@
 #define PULSETIME 30             // 30 millisecond pulse for the lavet motor
 
 
-#ifndef WIFISSID
-#define WIFISSID "***"
-#endif 
+#define AP_NAME  "ClockSetupAP"
 
-#ifndef PASSWORD
-#define PASSWORD "***"    
-#endif
 
 #define HOUR     0x0000                         // address in EERAM for analogClkHour
 #define MINUTE   HOUR+1                         // address in EERAM for analogClkMinute
@@ -140,19 +135,13 @@ void setup() {
    Serial.print(ESP.getResetReason());
    Serial.println(" Reset");
    
-   //--------------------------------------------------------------------------
-   // connect to WiFi...
-   //--------------------------------------------------------------------------
-   Serial.printf("Connecting to %s",WIFISSID);
-   WiFi.begin(WIFISSID,PASSWORD);
-   while (WiFi.status() != WL_CONNECTED) {
-   waitTime = millis()+500;
-   while(millis() < waitTime)yield();                          // wait one half second       
-      Serial.print(".");                                       // print a "." every half second
-   }
-   Serial.println("\nConnected");
+  // Wifi setup.
+  WiFiManager wifiManager; 
+  while ( !wifiManager.autoConnect(AP_NAME) ) {
+    ; // keep looping until conenction made.
+  }
 
-   //--------------------------------------------------------------------------
+  //--------------------------------------------------------------------------
    // connect to the NTP server...
    //--------------------------------------------------------------------------
    NTP.begin(NTPSERVERNAME,true);                        // start the NTP client
