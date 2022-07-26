@@ -11,6 +11,9 @@ Migration of the ESP8266-WiFi-Analog-Clock (https://github.com/jim11662418/ESP82
 ## Limitations 
 * Hardcoded Timezone to NZ
 * No saving / changes of Timezone
+* need to update the documentation
+* Wifi hardcoded using a #define 
+
 
 
 ## Introduction

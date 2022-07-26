@@ -1,5 +1,6 @@
-
+* Move clock out of ticker.
 
 
 * Update the diagram to reflect actuals
 
+* Remove button stuff.

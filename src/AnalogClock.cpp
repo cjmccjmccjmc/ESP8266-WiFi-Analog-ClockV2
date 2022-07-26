@@ -11,7 +11,7 @@
 #include <ESP8266WebServer.h>
 #include "I2C_eeprom.h"
 
-#include WifiDef.h
+#include "WifiDef.h"
 
 // WEMOS D1 Mini pins
 #define D0 16                    // can't use D0 to generate interrupts
@@ -24,6 +24,7 @@
 #define D7 13
 #define D8 15                    // 10K pull-down, boot fails if pulled HIGH
 
+   // Note: to remove need to update schematic to swap over pins.
 #define LOCAL_SDA D1                   // output to SDA on the EERam
 #define LOCAL_SCL D2                   // output to SCL on the EERam
 #define COIL1 D3                 // output to clock's lavet motor coil
@@ -45,7 +46,7 @@
 #define PASSWORD "***"    
 #endif
 
-#define HOUR     0x0001                         // address in EERAM for analogClkHour
+#define HOUR     0x0000                         // address in EERAM for analogClkHour
 #define MINUTE   HOUR+1                         // address in EERAM for analogClkMinute
 #define SECOND   HOUR+2                         // address in EERAM for analogClkSecond
 #define WEEKDAY  HOUR+3                         // address in EERAM for analogClkWeekday
@@ -68,12 +69,12 @@ I2C_eeprom ee(0x50, I2C_DEVICESIZE_24LC16);
 
 ESP8266WebServer analogClkServer(80);
 Ticker pulseTimer,clockTimer,ledTimer;
-//REMOVE NTPEvent_t ntpEvent;                        // last NTP triggered event
 String lastSyncTime = "";
 String lastSyncDate = "";
 boolean syncEventTriggered = false;             // true if an NTP time sync event has been triggered
 boolean setupComplete = false;
 boolean printTime = false;
+boolean advanceClock = false;
 volatile boolean switchInterruptFlag = false;
 // int timeZone=-5;                               // EST
 #define timeZone TZ_Pacific_Auckland
@@ -96,53 +97,11 @@ void greenLEDoff();
 void pulseOff();
 void pulseCoil();
 void checkClock();
+void updateClock();
 
 // Forward declarations
 void syncNTPEventFunction(NTPEvent_t);
 String getUpTime();
-
-void doScan() {
-   byte error, address;
-  int nDevices;
- 
-  Serial.println("Scanning...");
- 
-  nDevices = 0;
-  for(address = 1; address < 127; address++ )
-  {
-    // The i2c_scanner uses the return value of
-    // the Write.endTransmisstion to see if
-    // a device did acknowledge to the address.
-    Wire.beginTransmission(address);
-    error = Wire.endTransmission();
- 
-    if (error == 0)
-    {
-      Serial.print("I2C device found at address 0x");
-      if (address<16)
-        Serial.print("0");
-      Serial.print(address,HEX);
-      Serial.println("  !");
- 
-      nDevices++;
-    }
-    else if (error==4)
-    {
-      Serial.print("Unknown error at address 0x");
-      if (address<16)
-        Serial.print("0");
-      Serial.println(address,HEX);
-    }    
-  }
-  if (nDevices == 0)
-    Serial.println("No I2C devices found\n");
-  else
-    Serial.println("done\n");
- 
-  delay(50000);           // wait 5 seconds for next scan
-
-}
-
 
 //--------------------------------------------------------------------------
 // Setup
@@ -153,11 +112,9 @@ void setup() {
    //--------------------------------------------------------------------------
    // configure hardware...
    //--------------------------------------------------------------------------
-   // eeRAM.begin(SDA,SCL);
-   //eeRAM.begin(LOCAL_SDA,LOCAL_SCL);
+
    // Note: to remove need to update schematic to swap over pins.
-   Wire.pins(LOCAL_SDA, LOCAL_SCL);
-   ee.begin();
+   ee.begin(LOCAL_SDA, LOCAL_SCL);
    pinMode(SWITCHPIN,INPUT_PULLUP);
    attachInterrupt(digitalPinToInterrupt(SWITCHPIN),pinInterruptISR,FALLING); // interrupt when puchbutton is pressed   
    pinMode(COIL1,OUTPUT);
@@ -182,8 +139,7 @@ void setup() {
    Serial.printf("Free size: %u\n",ESP.getFreeSketchSpace());
    Serial.print(ESP.getResetReason());
    Serial.println(" Reset");
-   // doScan();
-
+   
    //--------------------------------------------------------------------------
    // connect to WiFi...
    //--------------------------------------------------------------------------
@@ -203,7 +159,7 @@ void setup() {
    NTP.setTimeZone(timeZone);
 
    NTP.onNTPSyncEvent(syncNTPEventFunction);
-   if (!NTP.setInterval(10,60)) Serial.println("Problem setting NTP interval.");
+   if (!NTP.setInterval(10,600)) Serial.println("Problem setting NTP interval.");
 
    byte waitCount = 500;
    Serial.print("Waiting for sync with NTP server");   
@@ -241,20 +197,6 @@ void setup() {
    //--------------------------------------------------------------------------
    // read analog clock values stored in EERam  
    //--------------------------------------------------------------------------
-
-   Serial.print("CHECK1: should be ");
-   Serial.print(0xAA);
-   Serial.print(" is ");
-   Serial.println(ee.readByte(CHECK1));
-   Serial.print("CHECK2: should be ");
-   Serial.print(0x55);
-   Serial.print(" is ");
-   Serial.println(ee.readByte(CHECK2));
-   Serial.print("Inpt: ");
-   Serial.print(inputAvail);
-   Serial.print(" Inpt: ");
-   Serial.println(!inputAvail);
-   Serial.println();
 
    if((ee.readByte(CHECK1)==0xAA)&&(ee.readByte(CHECK2)==0x55)&&(!inputAvail)){
       Serial.println("\nReading values from EERAM.");
@@ -325,6 +267,13 @@ void loop() {
        ledTimer.once_ms(100,greenLEDoff);                      // turn off the green LED after 100 milliseconds
     }
 
+    // If clock advance has been triggered
+    // Note: the has been moved out of the Ticker as EERAM update is runs too long for use in a ticker callback.
+    if ( advanceClock ) {
+      updateClock();
+      advanceClock = false;
+    }
+
     // print analog clock and actual time if values have changed  
     if (printTime) {                                           // when the analog clock is updated...
        printTime = false;
@@ -333,6 +282,7 @@ void loop() {
 
     // handle requests from the web server  
     analogClkServer.handleClient();                                 // handle requests from status web page
+
 
 }
 
@@ -379,68 +329,37 @@ void pulseCoil() {
 // second hand needs to be advanced
 //--------------------------------------------------------------------------
 void checkClock() {
-   time_t analogClkTime = makeTime({analogClkSecond,analogClkMinute,analogClkHour,analogClkWeekday,analogClkDay,analogClkMonth,analogClkYear});
-   if (analogClkTime < now()) {                    // if the analog clock is behind the actual time and needs to be advanced...
-      pulseCoil();                                 // pulse the motor to advance the analog clock's second hand
-      if (++analogClkSecond==60){                  // since the clock motor has been pulsed, increase the seconds count
-         analogClkSecond=0;                        // at 60 seconds, reset analog clock's seconds count back to zero
-         if (++analogClkMinute==60) {
-             analogClkMinute=0;                    // at 60 minutes, reset analog clock's minutes count back to zero
-             if (++analogClkHour==24) {
-                 analogClkHour=0;                  // at 24 hours, reset analog clock's hours count back to zero
-                 analogClkWeekday=weekday();       // update values
-                 analogClkDay=day();
-                 analogClkMonth=month();
-                 analogClkYear=year()-1970;   
-                 
-                 ee.writeByte(WEEKDAY,analogClkWeekday);// save the updated values in eeRAM
-                 ee.writeByte(DAY,analogClkDay);
-                 ee.writeByte(MONTH,analogClkMonth); 
-                 ee.writeByte(YEAR,analogClkYear); 
-             }
-         }
-      }
-      ee.writeByte(HOUR,analogClkHour);             // save the new values in eeRAM
-      ee.writeByte(MINUTE,analogClkMinute);
-      ee.writeByte(SECOND,analogClkSecond); 
-      printTime = false; // TODO                            // set flag to update display
-      Serial.println("WRite2");
+  time_t analogClkTime = makeTime({analogClkSecond,analogClkMinute,analogClkHour,analogClkWeekday,analogClkDay,analogClkMonth,analogClkYear});
+  if (analogClkTime < now()) {                    // if the analog clock is behind the actual time and needs to be advanced...
+    advanceClock = true;
+  }
+}
 
-/*      
-      Serial.print(analogClkHour); 
-      Serial.print(" -> ");
-      Serial.println(eeRAM.read(HOUR));
-      Serial.print("  ");
-      Serial.println(analogClkMinute);
-      Serial.print(" -> ");
-      Serial.println(eeRAM.read(MINUTE)); */
-      Serial.print(analogClkSecond);      
-      Serial.print(" -> ");
-      Serial.println(ee.readByte(SECOND));
-      /*
-      Serial.print(analogClkWeekday);
-      Serial.print(" -> ");
-      Serial.println(eeRAM.read(WEEKDAY));
-      Serial.print(analogClkDay);
-      Serial.print(" -> ");
-      Serial.println(eeRAM.read(DAY));
-      Serial.print(analogClkMonth); 
-      Serial.print(" -> ");
-      Serial.println(eeRAM.read(MONTH));
-      Serial.print(analogClkYear); 
-      Serial.print(" -> ");
-      Serial.println(eeRAM.read(YEAR));
-      Serial.print(0);     
-      Serial.print(" -> ");
-      Serial.println(eeRAM.read(TIMEZONE));
-      Serial.print(0xAA);
-      Serial.print(" -> ");
-      Serial.println(eeRAM.read(CHECK1));
-      Serial.print(0x55);
-      Serial.print(" -> ");
-      Serial.println(eeRAM.read(CHECK2)); 
-      */
-  } // if (analogClkTime<now())   
+void updateClock() {
+  pulseCoil();                                 // pulse the motor to advance the analog clock's second hand
+  if (++analogClkSecond==60){                  // since the clock motor has been pulsed, increase the seconds count
+      analogClkSecond=0;                        // at 60 seconds, reset analog clock's seconds count back to zero
+      if (++analogClkMinute==60) {
+          analogClkMinute=0;                    // at 60 minutes, reset analog clock's minutes count back to zero
+          if (++analogClkHour==24) {
+              analogClkHour=0;                  // at 24 hours, reset analog clock's hours count back to zero
+              analogClkWeekday=weekday();       // update values
+              analogClkDay=day();
+              analogClkMonth=month();
+              analogClkYear=year()-1970;   
+              
+              ee.writeByte(WEEKDAY,analogClkWeekday);// save the updated values in eeRAM
+              ee.writeByte(DAY,analogClkDay);
+              ee.writeByte(MONTH,analogClkMonth); 
+              ee.writeByte(YEAR,analogClkYear); 
+          }
+      }
+  }
+  ee.writeByte(HOUR,analogClkHour);             // save the new values in eeRAM
+  ee.writeByte(MINUTE,analogClkMinute);
+  ee.writeByte(SECOND,analogClkSecond); 
+  printTime = true;                             // set flag to update display
+  advanceClock = false;                         // set flag that have advanced clock
 }
 
 //--------------------------------------------------------------------------
@@ -530,41 +449,6 @@ void handleRoot() {
          ee.writeByte(TIMEZONE,0);     
          ee.writeByte(CHECK1,0xAA);
          ee.writeByte(CHECK2,0x55);
-    
-
-/*
-         Serial.println("WRite1");
-         Serial.print(analogClkHour); 
-         Serial.print(" -> ");
-         Serial.println(eeRAM.read(HOUR));
-         Serial.print(analogClkMinute);
-         Serial.print(" -> ");
-         Serial.println(eeRAM.read(MINUTE));
-         Serial.print(analogClkSecond);      
-         Serial.print(" -> ");
-         Serial.println(eeRAM.read(SECOND));
-         Serial.print(analogClkWeekday);
-         Serial.print(" -> ");
-         Serial.println(eeRAM.read(WEEKDAY));
-         Serial.print(analogClkDay);
-         Serial.print(" -> ");
-         Serial.println(eeRAM.read(DAY));
-         Serial.print(analogClkMonth); 
-         Serial.print(" -> ");
-         Serial.println(eeRAM.read(MONTH));
-         Serial.print(analogClkYear); 
-         Serial.print(" -> ");
-         Serial.println(eeRAM.read(YEAR));
-         Serial.print(0);     
-         Serial.print(" -> ");
-         Serial.println(eeRAM.read(TIMEZONE));
-         Serial.print(0xAA);
-         Serial.print(" -> ");
-         Serial.println(eeRAM.read(CHECK1));
-         Serial.print(0x55);
-         Serial.print(" -> ");
-         Serial.println(eeRAM.read(CHECK2));
-         */
          setupComplete = true;                               // set flag to indicate that we're done with setup   
       }
    }
