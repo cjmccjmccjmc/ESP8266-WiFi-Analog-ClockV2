@@ -4,3 +4,5 @@
 * Update the diagram to reflect actuals
 
 * Remove button stuff.
+
+* Document use of the WiFi manager
