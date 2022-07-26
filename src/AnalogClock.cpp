@@ -30,9 +30,6 @@
 #define COIL1 D3                 // output to clock's lavet motor coil
 #define COIL2 D7                 // output to clock's lavet motor coil
 
-#define REDLED D5                // output to red part of the RGB LED
-#define GREENLED D4              // output to green part of the RGB LED
-#define BLUELED D8               // output to blue part of the RGB LED
 
 #define PULSETIME 30             // 30 millisecond pulse for the lavet motor
 
@@ -62,7 +59,7 @@ const char* NTPSERVERNAME =  "nz.pool.ntp.org";
 I2C_eeprom ee(0x50, I2C_DEVICESIZE_24LC16);
 
 ESP8266WebServer analogClkServer(80);
-Ticker pulseTimer,clockTimer,ledTimer;
+Ticker pulseTimer,clockTimer;
 String lastSyncTime = "";
 String lastSyncDate = "";
 boolean syncEventTriggered = false;             // true if an NTP time sync event has been triggered
@@ -111,15 +108,9 @@ void setup() {
    ee.begin(LOCAL_SDA, LOCAL_SCL);
    pinMode(COIL1,OUTPUT);
    pinMode(COIL2,OUTPUT);
-   pinMode(REDLED,OUTPUT);
-   pinMode(GREENLED,OUTPUT);
-   pinMode(BLUELED,OUTPUT);
-   
+
    digitalWrite(COIL1,LOW);
    digitalWrite(COIL2,LOW);
-   digitalWrite(REDLED,LOW);
-   digitalWrite(GREENLED,LOW);
-   digitalWrite(BLUELED,LOW);
 
    //--------------------------------------------------------------------------      
    // print the banner... 
@@ -218,12 +209,6 @@ void setup() {
       byte lastSeconds = second();
       while(!setupComplete) {
          analogClkServer.handleClient();
-         byte seconds = second();  
-         if (lastSeconds != seconds) {
-            lastSeconds = seconds;
-            digitalWrite(BLUELED,HIGH);                            // flash the blue LED once each second while waiting for input to the web page
-            ledTimer.once_ms(100,blueLEDoff);
-         }
       }
    }
    clockTimer.attach_ms(100,checkClock);                      // start up 100 millisecond clock timer
@@ -246,13 +231,6 @@ void loop() {
       Serial.println("Pushbutton!");
     }
 
-    // flash the green LED once per second
-    byte secs = second();  
-    if (lastSeconds != secs) {                                 // when the second changes...
-       lastSeconds = secs;                
-       digitalWrite(GREENLED,HIGH);                            // turn on the green LED       
-       ledTimer.once_ms(100,greenLEDoff);                      // turn off the green LED after 100 milliseconds
-    }
 
     // If clock advance has been triggered
     // Note: the has been moved out of the Ticker as EERAM update is runs too long for use in a ticker callback.
@@ -273,16 +251,6 @@ void loop() {
 
 }
 
-//------------------------------------------------------------------------
-// Ticker callbacks that turns off the LEDs after 100 milliseconds.
-//-------------------------------------------------------------------------
-void blueLEDoff(){
-   digitalWrite(BLUELED,LOW);                          
-}
-
-void greenLEDoff(){
-   digitalWrite(GREENLED,LOW);                          
-}
 
 //------------------------------------------------------------------------
 // Ticker callback that turns off the pulse to the analog clock Lavet motor
