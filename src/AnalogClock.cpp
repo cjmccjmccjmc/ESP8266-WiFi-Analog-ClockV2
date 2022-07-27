@@ -77,14 +77,7 @@ byte analogClkDay=0;
 byte analogClkMonth=0;
 byte analogClkYear=0;
 
-// ISR functions should be defined with ICACHE_RAM_ATTR attribute to let the compiler know to never remove them from the IRAM. 
-// If the ICACHE_RAM_ATTR attribute is missing the firmware will crash at the first call to attachInterrupt() on a ISR routine
-// that happens not to be in ram at that moment. This bug will manifest itself only on some platform and some code configurations,
-// as it entirely depends of where the compiler chooses to put the ISR functions.
-void ICACHE_RAM_ATTR pinInterruptISR();
 void handleRoot();
-void blueLEDoff();
-void greenLEDoff();
 void pulseOff();
 void pulseCoil();
 void checkClock();
