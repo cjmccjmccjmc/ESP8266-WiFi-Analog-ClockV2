@@ -12,6 +12,7 @@
 #include "I2C_eeprom.h"
 #include <WiFiManager.h>
 
+#include "timezones.hpp"
 
 // WEMOS D1 Mini pins
 #define D0 16                    // can't use D0 to generate interrupts
