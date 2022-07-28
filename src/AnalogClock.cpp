@@ -133,7 +133,7 @@ void setup() {
    NTP.onNTPSyncEvent(syncNTPEventFunction);
    if (!NTP.setInterval(10,600)) Serial.println("Problem setting NTP interval.");
 
-   byte waitCount = 500;
+   int waitCount = 500;
    Serial.print("Waiting for sync with NTP server");   
    while (timeStatus() != timeSet) {                           // wait until the the time is set and synced
       waitTime = millis()+500;
@@ -173,21 +173,13 @@ void setup() {
    if((ee.readByte(CHECK1)==0xAA)&&(ee.readByte(CHECK2)==0x55)&&(!inputAvail)){
       Serial.println("\nReading values from EERAM.");
       analogClkHour = ee.readByte(HOUR);
-      Serial.println("\nReading values from EERAM.");
       analogClkMinute = ee.readByte(MINUTE);
-      Serial.println("\nReading values from EERAM.");
       analogClkSecond = ee.readByte(SECOND);
-      Serial.println("\nReading values from EERAM.");
       analogClkWeekday = ee.readByte(WEEKDAY);
-      Serial.println("\nReading values from EERAM.");
       analogClkDay = ee.readByte(DAY);
-      Serial.println("\nReading values from EERAM.");
       analogClkMonth = ee.readByte(MONTH);
-      Serial.println("\nReading values from EERAM.");
       analogClkYear = ee.readByte(YEAR);      
-      Serial.println("\nReading values from EERAM.");
       int ignoretimeZone = ee.readByte(TIMEZONE); 
-      Serial.println("\nReading values from EERAM.");
       setupComplete = true;      
    }
    //--------------------------------------------------------------------------   
@@ -212,7 +204,6 @@ void setup() {
 // Main Loop
 //--------------------------------------------------------------------------
 void loop() {
-    static byte lastSeconds = 0; 
 
     // get any characters from the serial port
     if (Serial.available()) {
