@@ -14,16 +14,6 @@
 
 #include "Generated_Timezones.hpp"
 
-// WEMOS D1 Mini pins
-#define D0 16                    // can't use D0 to generate interrupts
-#define D1  5
-#define D2  4
-#define D3  0                    // 10K pull-up, boot fails if pulled LOW
-#define D4  2                    // 10K pull-up, boot fails if pulled LOW, BUILTIN_LED,
-#define D5 14
-#define D6 12
-#define D7 13
-#define D8 15                    // 10K pull-down, boot fails if pulled HIGH
 
    // Note: to remove need to update schematic to swap over pins.
 #define LOCAL_SDA D1                   // output to SDA on the EERam
