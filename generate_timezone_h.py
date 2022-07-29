@@ -3,6 +3,9 @@ import json
 
 POSTION_ZERO_TIMEZONE = "Etc/Universal" 
 
+OUTPUT_HEADER_FILENAME = "src/Generated_Timezones.hpp"
+INPUT_FILE_NAME = ".pio/libdeps/d1_mini/posix_tz_db/zones.json"
+
 HEADER_TEMPLATE = """
 
 /* This is a generated header file, any edits will be overwritten.
@@ -25,7 +28,7 @@ const char *GENERATED_TZ_JSON = "{}";
 
 """
 
-with open(".pio/libdeps/d1_mini/posix_tz_db/zones.json", "r") as f:
+with open(INPUT_FILE_NAME, "r") as f:
     zones = json.load(f)
 
 
@@ -68,7 +71,7 @@ with open(".pio/libdeps/d1_mini/posix_tz_db/zones.json", "r") as f:
     jsonForC = jsonForC.replace("\"", "\\\"")
 
 
-    with open("src/timezones.hpp", "w") as out:
+    with open(OUTPUT_HEADER_FILENAME, "w") as out:
         out.write(HEADER_TEMPLATE.format(lookup_size, lookup_data, jsonForC))
 
 
