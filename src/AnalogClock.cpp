@@ -57,7 +57,6 @@ boolean syncEventTriggered = false;             // true if an NTP time sync even
 boolean setupComplete = false;
 boolean printTime = false;
 boolean advanceClock = false;
-volatile boolean switchInterruptFlag = false;
 // int timeZone=-5;                               // EST
 #define timeZone TZ_Pacific_Auckland
 byte analogClkHour=0;
@@ -199,13 +198,6 @@ void loop() {
     if (Serial.available()) {
       char c = Serial.read();
     }
-
-    // check to see if the pushbutton has been pressed
-    if (switchInterruptFlag) {                                 // the pushbutton has been pressed
-      switchInterruptFlag = false;
-      Serial.println("Pushbutton!");
-    }
-
 
     // If clock advance has been triggered
     // Note: the has been moved out of the Ticker as EERAM update is runs too long for use in a ticker callback.
