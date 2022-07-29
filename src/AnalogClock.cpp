@@ -392,7 +392,6 @@ String getUpTime() {
    int d=uptime/86400;
    int h=(uptime%86400)/3600;
    int m=(uptime%3600)/60;
-   int s=uptime%60;
    String daysStr="";
    if (d>0) (d==1) ? daysStr="1 day," : daysStr=String(d)+" days,";
    String hoursStr="";
