@@ -14,10 +14,6 @@
 
 #include "Generated_Timezones.hpp"
 
-
-   // Note: to remove need to update schematic to swap over pins.
-#define LOCAL_SDA D1                   // output to SDA on the EERam
-#define LOCAL_SCL D2                   // output to SCL on the EERam
 #define COIL1 D3                 // output to clock's lavet motor coil
 #define COIL2 D7                 // output to clock's lavet motor coil
 
@@ -87,8 +83,7 @@ void setup() {
    // configure hardware...
    //--------------------------------------------------------------------------
 
-   // Note: to remove need to update schematic to swap over pins.
-   ee.begin(LOCAL_SDA, LOCAL_SCL);
+   ee.begin();
    pinMode(COIL1,OUTPUT);
    pinMode(COIL2,OUTPUT);
 
