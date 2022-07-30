@@ -25,6 +25,7 @@ const char *GENERATED_TZ_LOOKUP[{}] = {};
 
 const char *GENERATED_TZ_JSON = "{}";
 
+const byte NEW_ZEALAND_TIMEZONE_POS = {};
 
 """
 
@@ -70,9 +71,11 @@ with open(INPUT_FILE_NAME, "r") as f:
     jsonForC = json.dumps(processed)
     jsonForC = jsonForC.replace("\"", "\\\"")
 
+    nzTZPosition = processed["Pacific"]["Auckland"]
+
 
     with open(OUTPUT_HEADER_FILENAME, "w") as out:
-        out.write(HEADER_TEMPLATE.format(lookup_size, lookup_data, jsonForC))
+        out.write(HEADER_TEMPLATE.format(lookup_size, lookup_data, jsonForC, nzTZPosition))
 
 
 
