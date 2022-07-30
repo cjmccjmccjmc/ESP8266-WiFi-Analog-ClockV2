@@ -117,7 +117,6 @@ void setup() {
    // connect to the NTP server...
    //--------------------------------------------------------------------------
    NTP.begin(NTPSERVERNAME,true);                        // start the NTP client
-   NTP.setTimeZone(timeZone);
 
    NTP.onNTPSyncEvent(syncNTPEventFunction);
    if (!NTP.setInterval(10,600)) Serial.println("Problem setting NTP interval.");
@@ -168,7 +167,8 @@ void setup() {
       analogClkDay = ee.readByte(DAY);
       analogClkMonth = ee.readByte(MONTH);
       analogClkYear = ee.readByte(YEAR);      
-      int ignoretimeZone = ee.readByte(TIMEZONE); 
+      byte timezonePosition = ee.readByte(TIMEZONE); 
+      NTP.setTimeZone(GENERATED_TZ_LOOKUP[timezonePosition]);
       setupComplete = true;      
    }
    //--------------------------------------------------------------------------   
@@ -178,7 +178,6 @@ void setup() {
       for (byte i=0;i<10;i++) {
          ee.writeByte(HOUR+i,0);                                // clear eeram     
       }
-      
       Serial.printf("\nBrowse to %s to set up the analog clock.\n\r",WiFi.localIP().toString().c_str());
     
       byte lastSeconds = second();
@@ -329,7 +328,8 @@ void handleRoot() {
             "<tr><td><label>Second (0-59):</label></td><td><input type=\"number\" min=\"0\" max=\"59\" size=\"3\" name=\"second\" value=\"\"></td></tr>"
           "</table><br>"
           "Timezone:<br>"
-          "&nbsp;<input type=\"radio\" name=\"timezone\" value=\"E\" checked>&nbsp;Auckland, New Zealand<br>"
+          "&nbsp;<input type=\"radio\" name=\"timezone\" value=\"39\" checked>&nbsp;Auckland, New Zealand<br>"
+          "&nbsp;<input type=\"radio\" name=\"timezone\" value=\"0\">&nbsp;Universal Time<br>"
           "<input type=\"submit\" value=\"Submit\">"
           "</form>"
         "</body>"
@@ -344,17 +344,9 @@ void handleRoot() {
          String secondValue = analogClkServer.arg("second");
          analogClkSecond = secondValue.toInt();
          String zoneValue = analogClkServer.arg("timezone");
-         /* switch(zoneValue[0]) {
-            case 'E': timeZone = -5;  // Eastern Standard Time 5 hours after UTC
-                      break;
-            case 'C': timeZone = -6;  // Central Standard Time 6 hours after UTC
-                      break;        
-            case 'M': timeZone = -7;  // Mountain Standard Time 7 hours after UTC
-                      break;        
-            case 'P': timeZone = -8;  // Pacific Standard Time 8 hours after UTC
-                      break;        
-            default:  timeZone = -5;  // EST
-         }*/
+         int timezonePosition = zoneValue.toInt();
+         NTP.setTimeZone(GENERATED_TZ_LOOKUP[timezonePosition]);
+
          analogClkWeekday=weekday();
          analogClkDay=day();
          analogClkMonth=month();
@@ -368,7 +360,7 @@ void handleRoot() {
          ee.writeByte(DAY,analogClkDay);
          ee.writeByte(MONTH,analogClkMonth); 
          ee.writeByte(YEAR,analogClkYear); 
-         ee.writeByte(TIMEZONE,0);     
+         ee.writeByte(TIMEZONE,timezonePosition);
          ee.writeByte(CHECK1,0xAA);
          ee.writeByte(CHECK2,0x55);
          setupComplete = true;                               // set flag to indicate that we're done with setup   
