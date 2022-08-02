@@ -64,6 +64,7 @@ byte analogClkMonth=0;
 byte analogClkYear=0;
 
 void handleRoot();
+void handleSave();
 void pulseOff();
 void pulseCoil();
 void checkClock();
@@ -147,6 +148,8 @@ void setup() {
    // start the web server
    //--------------------------------------------------------------------------
    analogClkServer.on("/",handleRoot);
+   analogClkServer.on("/clock",handleRoot);
+   analogClkServer.on("/save",handleSave);
    analogClkServer.begin();
 
    //--------------------------------------------------------------------------
@@ -309,7 +312,7 @@ void handleRoot() {
           "<title>Analog Clock Setup</title>"
         "</head>"
         "<body>"
-          "<form action=\"/\" method=\"POST\">"
+          "<form action=\"/save\" method=\"POST\">"
           "<h1> Analog Clock Setup</h1>"
           "<p>Since the analog clock hands do not provide feedback of their position, you must specify<br>the starting position of the clock hour, minute and second hands. Do not leave any fields blank!</p>"
           "<ol>"
@@ -317,28 +320,118 @@ void handleRoot() {
             "<li>Select your time zone.</li>"
             "<li>Click the \"Submit\" button.</li>"
           "</ol>"
+          "<script>"
+          "var tzLook =" + String(GENERATED_TZ_JSON) + ";"
+          "</script>"
           "<table>"
-            "<tr><td><label>Hour   (0-11):</label></td><td><input type=\"number\" min=\"0\" max=\"23\" size=\"3\" name=\"hour\"   value=\"\"></td></tr>"
-            "<tr><td><label>Minute (0-59):</label></td><td><input type=\"number\" min=\"0\" max=\"59\" size=\"3\" name=\"minute\" value=\"\"></td></tr>"
-            "<tr><td><label>Second (0-59):</label></td><td><input type=\"number\" min=\"0\" max=\"59\" size=\"3\" name=\"second\" value=\"\"></td></tr>"
-          "</table><br>"
-          "Timezone:<br>"
-          "&nbsp;<input type=\"radio\" name=\"timezone\" value=\"39\" checked>&nbsp;Auckland, New Zealand<br>"
-          "&nbsp;<input type=\"radio\" name=\"timezone\" value=\"0\">&nbsp;Universal Time<br>"
+          "<tr>"
+          "<td>"
+          "<label>"
+          "Hour   (0-11):</label>"
+          "</td>"
+          "<td>"
+          "<input type=\"number\" min=\"0\" max=\"23\" size=\"3\" name=\"hour\"   value=\"\">"
+          "</td>"
+          "</tr>"
+          "<tr>"
+          "<td>"
+          "<label>"
+          "Minute (0-59):</label>"
+          "</td>"
+          "<td>"
+          "<input type=\"number\" min=\"0\" max=\"59\" size=\"3\" name=\"minute\" value=\"\">"
+          "</td>"
+          "</tr>"
+          "<tr>"
+          "<td>"
+          "<label>"
+          "Second (0-59):</label>"
+          "</td>"
+          "<td>"
+          "<input type=\"number\" min=\"0\" max=\"59\" size=\"3\" name=\"second\" value=\"\">"
+          "</td>"
+          "</tr>"
+          "<tr>"
+          "<td>"
+          "<label>"
+          "Timezone:"
+          "</label>"
+          "</td>"
+          "<td>"
+          "<select onchange=\"onAreaChange()\" name=\"area\" size=\"11\" id=\"area\">"
+          "  <option value=\"noarea\">No Area</option>"
+          "</select>"
+          "</td>"
+          "<td>"
+          "<select name=\"city\" id=\"city\" size=\"11\">"
+          "  <option value=\"nocity\">----</option>"
+          "</select>"
+          "</td>"
+          "</tr>"
+          "</table>"
           "<input type=\"submit\" value=\"Submit\">"
           "</form>"
+          "<script>"
+          "function removeOptions(selectElement) {"
+          "   var i, L = selectElement.options.length - 1;"
+          "   for(i = L; i >= 0; i--) {"
+          "      selectElement.remove(i);"
+          "   }"
+          "}"
+          "function setSelectToValues(selRef, lst) {"
+          "    removeOptions(selRef);"
+          "    for (const val in lst) {"
+          "	var el = document.createElement(\"option\");"
+          "	el.textContent = val;"
+          "	if ( typeof(lst[val]) == \"number\" ) {"
+          "	    el.value = lst[val];"
+          "	} else {"
+          "	    el.value = val;"
+          "	}"
+          "	selRef.appendChild(el);"
+          "    }"
+          "    selRef.selectedIndex = \"0\""
+          "}"
+          "function onAreaChange() {   "
+          "    setSelectToValues(city, tzLook[area.value])"
+          "}"
+          "setSelectToValues(area, tzLook);"
+          "area.value = \"America\";"
+          "onAreaChange();"
+          "city.value = tzLook[area.value][\"Detroit\"];"
+          "</script>"
         "</body>"
       "</html>");  
+  }
+}
 
+
+//--------------------------------------------------------------------------
+// Handles save requests.
+//--------------------------------------------------------------------------
+void handleSave() {
+  analogClkServer.send(200, "text/html",
+  "<!DOCTYPE HTML>"
+  "<html>"
+    "<head>"
+      "<META HTTP-EQUIV=\"refresh\" CONTENT=\"5; URL=\'/clock\'\">"
+      "<meta content=\"text/html; charset=utf-8\">"
+      "<title> ESP8266 Analog Clock - Saving...</title>"
+    "</head>"
+    "<body style=\"background-color:lightgrey;\">"
+      "<h1>Saving Analog Clock...</h1>"
+      "Redirecting after save."
+    "</body>"
+  "</html>");
           
-      if (analogClkServer.hasArg("hour")&&analogClkServer.hasArg("minute")&&analogClkServer.hasArg("second")&&analogClkServer.hasArg("timezone")) {
+  if (analogClkServer.hasArg("hour")&&analogClkServer.hasArg("minute")&&analogClkServer.hasArg("second")&&analogClkServer.hasArg("city")) {
          String hourValue = analogClkServer.arg("hour");
          analogClkHour = hourValue.toInt();
          String minuteValue = analogClkServer.arg("minute");
          analogClkMinute = minuteValue.toInt();  
          String secondValue = analogClkServer.arg("second");
          analogClkSecond = secondValue.toInt();
-         String zoneValue = analogClkServer.arg("timezone");
+    String zoneValue = analogClkServer.arg("city");
          int timezonePosition = zoneValue.toInt();
          NTP.setTimeZone(GENERATED_TZ_LOOKUP[timezonePosition]);
 
@@ -360,7 +453,6 @@ void handleRoot() {
          ee.writeByte(CHECK2,0x55);
          setupComplete = true;                               // set flag to indicate that we're done with setup   
       }
-   }
 }
 
 //--------------------------------------------------------------------------

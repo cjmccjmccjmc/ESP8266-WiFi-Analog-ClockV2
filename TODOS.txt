@@ -1,8 +1,4 @@
-* Move clock out of ticker.
 
-
-* Update the diagram to reflect actuals
-
-* Remove button stuff.
+* Update the diagram to reflect actuals especially with the use of default SCL/SDA pins
 
 * Document use of the WiFi manager
