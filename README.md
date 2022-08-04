@@ -106,7 +106,8 @@ Once the boots are complete, a 10 second countdown will be shown on the console 
 * Hour hand
 * Minute hand 
 * Second hand
-And select the timezone you are in by first selecting the area then the nearest city to your location.
+
+And select the timezone you are in by first selecting the area then the nearest city to your location then hitting Submit.
 
 ![Clock Setup](images/Setup.png)
 
