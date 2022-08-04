@@ -4,13 +4,10 @@
 
 The ESP8266 Analog clock uses an WEMOS D1 Mini ESP8266 module to connect to a NTP (Network Time Protocol) server to automatically retrieve and display the local time on a hacked  analog quartz clock. The ESP8266 reconnects to the NTP server to keep the clock accurate. The clock also automatically adjusts for daylight savings time.
 
-This project is a migration of the ESP8266-WiFi-Analog-Clock (https://github.com/jim11662418/ESP8266-WiFi-Analog-Clock) to use Platform IO with various library changes. With te signficant changes it was easiler to create a new project rather than fork the existing repo.
+From the orginal project, the biggest problem with using these cheap analog clocks for a project like this is that the clocks don't provide any type of feedback to indicate the position of the clock's hands.  To get around this problem, the positions of the hour, minute, and second hands are stored in a EEPROM backup and updated each second as the clock's hands positions change. The first time that the sketch is run, the user will be directed to a simple web page served by the ESP8266 which is used to tell it where the analog clock's hands are initially positioned. From that point on, the ESP8266 will use the data stored in the EERAM to "remember" the positions of the clock's hands.
 
-Fom the orginal project, the biggest problem with using these cheap analog clocks for a project like this is that the clocks don't provide any type of feedback to indicate the position of the clock's hands.  To get around this problem, the positions of the hour, minute and second hands are stored in a EEPROM backup and updated each second as the clock's hands positions change. The first time that the sketch is run, the user will be directed to a simple web page served by the ESP8266 which is used to tell it where the analog clock's hands are initially positioned. From that point on, the ESP8266 will use the data stored in the EERAM to "remember" the positions of the clock's hands.
-
-
-### Changes from V1 to V2
-* Migrated to use Platform IO
+This project is a migration of the ESP8266-WiFi-Analog-Clock (https://github.com/jim11662418/ESP8266-WiFi-Analog-Clock) to use Platform IO with various library changes. With te signficant changes it was easiler to create a new project rather than fork the existing repo.  Changes from the orginal project to this one are:
+* Migrated to use Platform IO as IDE
 * Migrated NTP library to the new library created by the NTP library developer (gmag11/ESPNtpClient)
 * Moved to using i2c_eerom library
 * Now using WiFiManager to connect to Wifi network (avoids need to hardcode wifi passwords)
