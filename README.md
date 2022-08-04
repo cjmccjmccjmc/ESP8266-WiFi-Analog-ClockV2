@@ -82,7 +82,8 @@ Once the above circuit is built and mount it on the back of the clock as indicat
 ### Trouble Shooting
 
 * Update the IC parameter (see above) if using a larger/smaller EEROM.
-* Increase or decrease the "PULSETIME" constant by few milliseconds to make your mechanism step reliably. .
+* Increase or decrease the "PULSETIME" constant by few milliseconds to make your mechanism step reliably.
+* Change the NTPSERVERNAME constant to the name of a local NTP server.
 
 ## Setup
 

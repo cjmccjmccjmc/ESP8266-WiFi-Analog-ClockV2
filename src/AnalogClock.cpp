@@ -35,12 +35,12 @@
 #define CHECK1   HOUR+8                         // address in EERAM for 1st check byte 0xAA
 #define CHECK2   HOUR+9                         // address in EERAM for 2nd check byte 0x55
 
-const char* NTPSERVERNAME =  "nz.pool.ntp.org";
- // #define NTPSERVERNAME "0.us.pool.ntp.org"
-//#define NTPSERVERNAME "time.nist.gov"
-//#define NTPSERVERNAME "time.windows.com"
-//#define NTPSERVERNAME "time.google.com"
-//#define NTPSERVERNAME "time-a-g.nist.gov"     // NIST, Gaithersburg, Maryland
+const char* NTPSERVERNAME = NTPSERVERNAME "time.google.com";
+// const char* NTPSERVERNAME = NTPSERVERNAME "0.us.pool.ntp.org";
+// const char* NTPSERVERNAME = NTPSERVERNAME "time.nist.gov";
+// const char* NTPSERVERNAME = NTPSERVERNAME "time.windows.com";
+// const char* NTPSERVERNAME = NTPSERVERNAME "time-a-g.nist.gov";     // NIST, Gaithersburg, Maryland
+// const char* NTPSERVERNAME =  "nz.pool.ntp.org";
 
 // EERAM eeRAM(0x50);
 I2C_eeprom ee(0x50, I2C_DEVICESIZE_24LC16);
@@ -431,7 +431,7 @@ void handleSave() {
          analogClkMinute = minuteValue.toInt();  
          String secondValue = analogClkServer.arg("second");
          analogClkSecond = secondValue.toInt();
-    String zoneValue = analogClkServer.arg("city");
+         String zoneValue = analogClkServer.arg("city");
          int timezonePosition = zoneValue.toInt();
          NTP.setTimeZone(GENERATED_TZ_LOOKUP[timezonePosition]);
 
