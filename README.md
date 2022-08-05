@@ -2,17 +2,17 @@
 
 ## Introduction
 
-The ESP8266 Analog clock uses an WEMOS D1 Mini ESP8266 module to connect to a NTP (Network Time Protocol) server to automatically retrieve and display the local time on a hacked  analog quartz clock. The ESP8266 reconnects to the NTP server to keep the clock accurate. The clock also automatically adjusts for daylight savings time.
+The ESP8266 Analog clock uses an WEMOS D1 Mini ESP8266 module to connect to a NTP (Network Time Protocol) server to automatically retrieve and display the local time on a hacked analog quartz clock. The ESP8266 reconnects to the NTP server to keep the clock accurate. The clock also automatically adjusts for daylight savings time.
 
-From the orginal project, the biggest problem with using these cheap analog clocks for a project like this is that the clocks don't provide any type of feedback to indicate the position of the clock's hands.  To get around this problem, the positions of the hour, minute, and second hands are stored in a EEPROM backup and updated each second as the clock's hands positions change. The first time that the sketch is run, the user will be directed to a simple web page served by the ESP8266 which is used to tell it where the analog clock's hands are initially positioned. From that point on, the ESP8266 will use the data stored in the EERAM to "remember" the positions of the clock's hands.
+From the original project, the biggest problem with using these cheap analog clocks for a project like this is that the clocks don't provide any type of feedback to indicate the position of the clock's hands.  To get around this problem, the positions of the hour, minute, and second hands are stored in a EEPROM backup and updated each second as the clock's hands positions change. The first time that the sketch is run, the user will be directed to a simple web page served by the ESP8266 which is used to tell it where the analog clock's hands are initially positioned. From that point on, the ESP8266 will use the data stored in the EERAM to "remember" the positions of the clock's hands.
 
-This project is a migration of the ESP8266-WiFi-Analog-Clock (https://github.com/jim11662418/ESP8266-WiFi-Analog-Clock) to use Platform IO with various library changes. With te signficant changes it was easiler to create a new project rather than fork the existing repo.  Changes from the orginal project to this one are:
+This project is a migration of the ESP8266-WiFi-Analog-Clock (https://github.com/jim11662418/ESP8266-WiFi-Analog-Clock) to use Platform IO with various library changes. With the significant changes it was easier to create a new project rather than fork the existing repo.  Changes from the original project to this one are:
 * Migrated to use Platform IO as IDE
 * Migrated NTP library to the new library created by the NTP library developer (gmag11/ESPNtpClient)
 * Moved to using i2c_eerom library
 * Now using WiFiManager to connect to Wifi network (avoids need to hardcode wifi passwords)
 * Expanded Timezone to be worldwide rather than the United States.
-* Simplifed circuit by removing push button and multi-color LED.
+* Simplified circuit by removing push button and multi-color LED.
 
 ## Hardware
 
@@ -36,7 +36,7 @@ This project is a migration of the ESP8266-WiFi-Analog-Clock (https://github.com
 
 
 *Note*
-The 24LC16 can be subsituted for a larger EEROM if required.   Update the following line in src/AnalogClock.cpp with the device size:
+The 24LC16 can be substituted for a larger EEROM if required.   Update the following line in src/AnalogClock.cpp with the device size:
 
     I2C_eeprom ee(0x50, I2C_DEVICESIZE_24LC16);
 
@@ -58,11 +58,11 @@ The 24LC16 can be subsituted for a larger EEROM if required.   Update the follow
 - R2	5.1Ω Resistor
 - R3	100Ω Resistor
 - R4	100Ω Resistor
-- WeMos D1 Mini1	
+- WeMos D1 Mini
 
-*Note: this circuit swaps the circuit's orginal routing of the I2C wires so that that the I2C clock and data pins to use the ESP8266 defaults.  *
+*Note: this circuit swaps the circuit's original routing of the I2C wires so that that the I2C clock and data pins to use the ESP8266 defaults.*
 
-Modify the analog clock to be controlled by the ESP8266 module by connecting wires to the Lavet stepping motor's coil and disconnct the coil from the quartz oscillator. Search the web for details on how to do this.
+Modify the analog clock to be controlled by the ESP8266 module by connecting wires to the Lavet stepping motor's coil and disconnect the coil from the quartz oscillator. Search the web for details on how to do this.
 
 ![Clock Movement](/images/Clock%20Movement.jpeg)
 
@@ -115,5 +115,3 @@ Once you click 'Submit', you will see the following page to indicate it is savin
 Once save is complete, it'll redirect to the following clock page.  
 
 ![Clock](images/Clock.png)
-
-
