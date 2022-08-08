@@ -53,8 +53,6 @@ boolean syncEventTriggered = false;             // true if an NTP time sync even
 boolean setupComplete = false;
 boolean printTime = false;
 boolean advanceClock = false;
-// int timeZone=-5;                               // EST
-#define timeZone TZ_Pacific_Auckland
 byte analogClkHour=0;
 byte analogClkMinute=0;
 byte analogClkSecond=0;
