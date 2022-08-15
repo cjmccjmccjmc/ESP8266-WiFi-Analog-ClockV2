@@ -115,3 +115,59 @@ Once you click 'Submit', you will see the following page to indicate it is savin
 Once save is complete, it'll redirect to the following clock page.  
 
 ![Clock](images/Clock.png)
+
+
+### Troubleshooting
+
+As each analog clock is different, I've found that some tuning is required to get a consistent working clock.   
+
+#### ESP8266 light flashes but nothing after a minute
+
+* Change power supply
+    * I've had a problem where one power supply would work but another (same Voltage and Amps) would not.
+    * I suspect that some phone 5V USB chargers don't work well with draw in amps for moving the Lavet motor.
+* Check for loose connections
+    * Connect to PC and monitor output to confirm all is running
+    * If NTP and web configuration countdown ok, turn off power and check connections.
+
+
+#### NTP sync timesout
+
+* Look in AnalogClock.cpp and search for const char* NTPSERVERNAME
+* Comment out the current NTPSERVER then
+    * Uncomment an existing server that is closer to your location
+    * or add the hostname of a local NTP server
+* Rebuild and upload firmware
+
+
+#### Seconds hand ticks but does not tock
+This is the case where every other tick the seconds hand doesn't move.
+
+* Open up AnalogClock.cpp
+    * Find #define PULSETIME
+    * Increase the value by 5 (See note on PULSETIME value below)
+* Rebuild and upload firmware
+
+
+#### After running for a while, the second hand stops
+Check the web page to see if it is running, the likely issue is the magnetic gear that the lavet motor turns has turned too far around as the pulse is too long.
+
+* Open up AnalogClock.cpp
+    * Find #define PULSETIME
+    * Decrease the value by 5 (See note on PULSETIME value below)
+* Rebuild and upload firmware
+
+
+#### Note on PULSETIME value
+The pulse time is the length of time, in milliseconds, that the lavet motor is activated to turn the magentic gear.
+
+* A Pulsetime of 25 seems to be a good starting point.
+* Increasing and decreasing by 5 seems to be the fastest way  to find the value that works with your clock.
+
+In the event that no one value seems to work when increasing/decreasing by 5:
+* Start the Pulse time in a very low value
+* Increase pulse time by five until second hand consistency ticks for each second
+* Leave running, if it doesn't stop after running for 24 hours, stop and use this value.
+* Take the current pulse value and decrease by five.
+* Now increase pulse time by 1 until a consistent ticking of the second hand occurs.
+* Use this value as the pulse time.
