@@ -18,7 +18,13 @@
 #define COIL2 D7                 // output to clock's lavet motor coil
 
 
-#define PULSETIME 30             // 30 millisecond pulse for the lavet motor
+#define PULSETIME 35             // 30 millisecond pulse for the lavet motor, less can be better
+
+// Prevent the clock advancing too fast and overloading the gears, the following values are how fast to advance in once hour:
+// 200 5 hours
+// 400 2.5hr
+// 500 2 hrs
+const unsigned long MIN_PULSE_GAP_MS = 400;  
 
 
 #define AP_NAME  "ClockSetupAP"
@@ -60,6 +66,8 @@ byte analogClkWeekday=0;
 byte analogClkDay=0;
 byte analogClkMonth=0;
 byte analogClkYear=0;
+unsigned long lastPulseTime = 0;
+
 
 void handleRoot();
 void handleSave();
@@ -238,6 +246,7 @@ void pulseCoil() {
       digitalWrite(COIL1,LOW);
       digitalWrite(COIL2,HIGH);
    }
+   lastPulseTime = millis();
    pulseTimer.once_ms(PULSETIME,pulseOff);      // turn off pulse after 30 milliseconds...
 }
 
@@ -248,7 +257,11 @@ void pulseCoil() {
 void checkClock() {
   time_t analogClkTime = makeTime({analogClkSecond,analogClkMinute,analogClkHour,analogClkWeekday,analogClkDay,analogClkMonth,analogClkYear});
   if (analogClkTime < now()) {                    // if the analog clock is behind the actual time and needs to be advanced...
-    advanceClock = true;
+
+    // Only tigger an advance if less than minimum gap to prevent too fast advance.
+    if ( lastPulseTime + MIN_PULSE_GAP_MS < millis() ) {
+      advanceClock = true;
+    }
   }
 }
 
