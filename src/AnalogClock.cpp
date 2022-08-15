@@ -42,10 +42,10 @@ const unsigned long MIN_PULSE_GAP_MS = 400;
 #define CHECK2   HOUR+9                         // address in EERAM for 2nd check byte 0x55
 
 const char* NTPSERVERNAME = NTPSERVERNAME "time.google.com";
-// const char* NTPSERVERNAME = NTPSERVERNAME "0.us.pool.ntp.org";
-// const char* NTPSERVERNAME = NTPSERVERNAME "time.nist.gov";
-// const char* NTPSERVERNAME = NTPSERVERNAME "time.windows.com";
-// const char* NTPSERVERNAME = NTPSERVERNAME "time-a-g.nist.gov";     // NIST, Gaithersburg, Maryland
+// const char* NTPSERVERNAME = "0.us.pool.ntp.org";
+// const char* NTPSERVERNAME = "time.nist.gov";
+// const char* NTPSERVERNAME = "time.windows.com";
+// const char* NTPSERVERNAME = "time-a-g.nist.gov";     // NIST, Gaithersburg, Maryland
 // const char* NTPSERVERNAME =  "nz.pool.ntp.org";
 
 // EERAM eeRAM(0x50);
