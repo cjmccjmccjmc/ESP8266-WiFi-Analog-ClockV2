@@ -185,3 +185,5 @@ In the event that no one value seems to work when increasing/decreasing by 5:
 * Configure via the webpage:
     * NTP server hostname
     * Pulse time
+* Reduce NTP sync accurate for a faster sync response
+    * Only need to be within 1-5 seconds?
