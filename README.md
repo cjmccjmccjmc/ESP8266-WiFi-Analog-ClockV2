@@ -179,8 +179,6 @@ In the event that no one value seems to work when increasing/decreasing by 5:
     * Behaviour that occurs is that the clock advances 12 hours until it is internally consistent.
 * Implement a slow tick to indicate when clock is waiting for time to catch-up  
     * e.g. 2 ticks within a second, then wait 9 seconds
-* Suggest timezone
-    * Use this which appears to work in browsers: Intl.DateTimeFormat().resolvedOptions().timeZone
 * Publish the ip address under dns (e.g. clock.local)
 * Configure via the webpage:
     * NTP server hostname
