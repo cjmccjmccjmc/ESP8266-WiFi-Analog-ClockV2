@@ -41,12 +41,11 @@ const unsigned long MIN_PULSE_GAP_MS = 400;
 #define CHECK1   HOUR+8                         // address in EERAM for 1st check byte 0xAA
 #define CHECK2   HOUR+9                         // address in EERAM for 2nd check byte 0x55
 
-const char* NTPSERVERNAME = NTPSERVERNAME "time.google.com";
+const char* NTPSERVERNAME = "time.google.com";
 // const char* NTPSERVERNAME = "0.us.pool.ntp.org";
 // const char* NTPSERVERNAME = "time.nist.gov";
 // const char* NTPSERVERNAME = "time.windows.com";
 // const char* NTPSERVERNAME = "time-a-g.nist.gov";     // NIST, Gaithersburg, Maryland
-// const char* NTPSERVERNAME =  "nz.pool.ntp.org";
 
 // EERAM eeRAM(0x50);
 I2C_eeprom ee(0x50, I2C_DEVICESIZE_24LC16);
@@ -407,9 +406,10 @@ void handleRoot() {
           "    setSelectToValues(city, tzLook[area.value])"
           "}"
           "setSelectToValues(area, tzLook);"
-          "area.value = \"America\";"
+          "browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone.split(\"/\");"
+          "area.value = browserTz[0];"
           "onAreaChange();"
-          "city.value = tzLook[area.value][\"Detroit\"];"
+          "city.value = tzLook[area.value][browserTz[1]];"
           "</script>"
         "</body>"
       "</html>");  
