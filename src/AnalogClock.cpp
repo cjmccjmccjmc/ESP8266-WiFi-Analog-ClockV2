@@ -11,6 +11,7 @@
 #include <ESP8266WebServer.h>
 #include "I2C_eeprom.h"
 #include <WiFiManager.h>
+#include <ESP8266mDNS.h>
 
 #include "Generated_Timezones.hpp"
 
@@ -28,7 +29,7 @@ const unsigned long MIN_PULSE_GAP_MS = 400;
 
 
 const char* AP_NAME = "ClockSetupAP";
-
+const char* MDNS_HOSTNAME = "clock";
 
 const uint16_t HOUR = 0x0000;                         // address in EERAM for analogClkHour
 const uint16_t MINUTE = HOUR+1;                         // address in EERAM for analogClkMinute
@@ -163,6 +164,12 @@ void setup() {
    analogClkServer.on("/clock",handleRoot);
    analogClkServer.on("/save",handleSave);
    analogClkServer.begin();
+
+  // Publish mDNS
+  if (!MDNS.begin(MDNS_HOSTNAME)) {             
+    Serial.println("Error setting up MDNS responder!");
+  }
+
 
    //--------------------------------------------------------------------------
    // read analog clock values stored in EERam  

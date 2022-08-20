@@ -13,6 +13,7 @@ This project is a migration of the ESP8266-WiFi-Analog-Clock (https://github.com
 * Now using WiFiManager to connect to Wifi network (avoids need to hardcode wifi passwords)
 * Expanded Timezone to be worldwide rather than the United States.
 * Simplified circuit by removing push button and multi-color LED.
+* Appears on network as clock.local (using mDNS)
 
 ## Hardware
 
@@ -97,14 +98,19 @@ On first boot, or unable to connect to the configured Wifi network, the Wifi man
 
 ### Clock Setup
 
-Once connected to a Wifi point, the code will enter a boot process connectiing to the wifi and NTP server.   Take note of the ip address for the webserver. 
+Once connected to a Wifi point, the code will enter a boot process connectiing to the wifi and NTP server.    
 
-Once the boots are complete, a 10 second countdown will be shown on the console for enter configuration mode.  Now press any key to enter configuration then browse to the ip address noted above during the boot process.   The webpage will now look like the following, enter the positions of the:
+Once the boots are complete, a 10 second countdown will be shown on the console for enter configuration mode.  Now press any key to enter configuration then browse to http://clock.local/   
+
+The webpage will now look like the following, enter the positions of the:
 * Hour hand
 * Minute hand 
 * Second hand
+* The Timezone will default to your browsers timezone.
 
-And select the timezone you are in by first selecting the area then the nearest city to your location then hitting Submit.
+To save the configuration press submit button.
+
+hitting Submit.
 
 ![Clock Setup](images/Setup.png)
 
@@ -179,7 +185,6 @@ In the event that no one value seems to work when increasing/decreasing by 5:
     * Behaviour that occurs is that the clock advances 12 hours until it is internally consistent.
 * Implement a slow tick to indicate when clock is waiting for time to catch-up  
     * e.g. 2 ticks within a second, then wait 9 seconds
-* Publish the ip address under dns (e.g. clock.local)
 * Configure via the webpage:
     * NTP server hostname
     * Pulse time
