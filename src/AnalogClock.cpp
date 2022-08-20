@@ -47,6 +47,12 @@ const char* NTPSERVERNAME = "time.google.com";
 // const char* NTPSERVERNAME = "time.windows.com";
 // const char* NTPSERVERNAME = "time-a-g.nist.gov";     // NIST, Gaithersburg, Maryland
 
+
+// Set the time for alignment sync with NTP server, since this is a wallclock, kept it within half a second. 
+const float SYNC_ACCURACY_SECONDS = 0.5;
+const long SYNC_ACCURACY_US = SYNC_ACCURACY_SECONDS * 1000000;
+
+
 // EERAM eeRAM(0x50);
 I2C_eeprom ee(0x50, I2C_DEVICESIZE_24LC16);
 
@@ -118,6 +124,7 @@ void setup() {
    // connect to the NTP server...
    //--------------------------------------------------------------------------
    NTP.begin(NTPSERVERNAME,true);                        // start the NTP client
+   NTP.setMinSyncAccuracy(SYNC_ACCURACY_US);
 
    NTP.onNTPSyncEvent(syncNTPEventFunction);
    if (!NTP.setInterval(10,600)) Serial.println("Problem setting NTP interval.");
