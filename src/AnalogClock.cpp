@@ -14,11 +14,11 @@
 
 #include "Generated_Timezones.hpp"
 
-#define COIL1 D3                 // output to clock's lavet motor coil
-#define COIL2 D7                 // output to clock's lavet motor coil
+static const uint8_t COIL1 = D3; // output to clock's lavet motor coil
+static const uint8_t COIL2 = D7; // output to clock's lavet motor coil
 
 
-#define PULSETIME 35             // 30 millisecond pulse for the lavet motor, less can be better
+const unsigned long PULSETIME = 35;             // 30 millisecond pulse for the lavet motor, less can be better
 
 // Prevent the clock advancing too fast and overloading the gears, the following values are how fast to advance in once hour:
 // 200 5 hours
@@ -27,19 +27,19 @@
 const unsigned long MIN_PULSE_GAP_MS = 400;  
 
 
-#define AP_NAME  "ClockSetupAP"
+const char* AP_NAME = "ClockSetupAP";
 
 
-#define HOUR     0x0000                         // address in EERAM for analogClkHour
-#define MINUTE   HOUR+1                         // address in EERAM for analogClkMinute
-#define SECOND   HOUR+2                         // address in EERAM for analogClkSecond
-#define WEEKDAY  HOUR+3                         // address in EERAM for analogClkWeekday
-#define DAY      HOUR+4                         // address in EERAM for analogClkDay
-#define MONTH    HOUR+5                         // address in EERAM for analogClkMonth
-#define YEAR     HOUR+6                         // address in EERAM for analogClkYear
-#define TIMEZONE HOUR+7                         // address in EERAM for timezone
-#define CHECK1   HOUR+8                         // address in EERAM for 1st check byte 0xAA
-#define CHECK2   HOUR+9                         // address in EERAM for 2nd check byte 0x55
+const uint16_t HOUR = 0x0000;                         // address in EERAM for analogClkHour
+const uint16_t MINUTE = HOUR+1;                         // address in EERAM for analogClkMinute
+const uint16_t SECOND = HOUR+2;                         // address in EERAM for analogClkSecond
+const uint16_t WEEKDAY = HOUR+3;                         // address in EERAM for analogClkWeekday
+const uint16_t DAY = HOUR+4;                         // address in EERAM for analogClkDay
+const uint16_t MONTH = HOUR+5;                         // address in EERAM for analogClkMonth
+const uint16_t YEAR = HOUR+6;                         // address in EERAM for analogClkYear
+const uint16_t TIMEZONE = HOUR+7;                         // address in EERAM for timezone
+const uint16_t CHECK1 = HOUR+8;                         // address in EERAM for 1st check byte 0xAA
+const uint16_t CHECK2 = HOUR+9;                         // address in EERAM for 2nd check byte 0x55
 
 const char* NTPSERVERNAME = "time.google.com";
 // const char* NTPSERVERNAME = "0.us.pool.ntp.org";
