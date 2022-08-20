@@ -188,3 +188,4 @@ In the event that no one value seems to work when increasing/decreasing by 5:
 * Real-time clock adjustment
     * Allow user to let the clock know the actual position of the hands while running
     * Need to figure out security approach to prevent unauthorised modification
+    * Only need to be within 1-5 seconds?
