@@ -29,7 +29,8 @@ const unsigned long MIN_PULSE_GAP_MS = 400;
 
 
 const char* AP_NAME = "ClockSetupAP";
-const char* MDNS_HOSTNAME = "clock";
+const char* MDNS_HOSTNAME = "myclock";
+const int MAX_DNS_ATTEMPTS = 10;
 
 const uint16_t HOUR = 0x0000;                         // address in EERAM for analogClkHour
 const uint16_t MINUTE = HOUR+1;                         // address in EERAM for analogClkMinute
@@ -166,9 +167,13 @@ void setup() {
    analogClkServer.begin();
 
   // Publish mDNS
-  if (!MDNS.begin(MDNS_HOSTNAME)) {             
-    Serial.println("Error setting up MDNS responder!");
+  int mdnsAttempt = 0;
+  while (!MDNS.begin(MDNS_HOSTNAME, WiFi.localIP()) && mdnsAttempt <= MAX_DNS_ATTEMPTS) {
+    Serial.println(F("Error setting up MDNS responder!"));
+    delay(1000);
+    mdnsAttempt++;
   }
+  MDNS.addService("http", "tcp", 80);
 
 
    //--------------------------------------------------------------------------
@@ -195,11 +200,17 @@ void setup() {
       for (byte i=0;i<10;i++) {
          ee.writeByte(HOUR+i,0);                                // clear eeram     
       }
-      Serial.printf("\nBrowse to %s to set up the analog clock.\n\r",WiFi.localIP().toString().c_str());
-    
+
+      if ( mdnsAttempt <= MAX_DNS_ATTEMPTS) {
+        Serial.printf("\nBrowse to http://%s.local (http://%s) to set up the analog clock.\n\r",MDNS_HOSTNAME, WiFi.localIP().toString().c_str());
+      } else {
+        Serial.printf("\nBrowse to http://%s to set up the analog clock.\n\r",WiFi.localIP().toString().c_str());
+      }
+
       byte lastSeconds = second();
       while(!setupComplete) {
          analogClkServer.handleClient();
+        MDNS.update();
       }
    }
    clockTimer.attach_ms(100,checkClock);                      // start up 100 millisecond clock timer
@@ -230,6 +241,9 @@ void loop() {
 
     // handle requests from the web server  
     analogClkServer.handleClient();                                 // handle requests from status web page
+
+    // Handle mDNS lookups
+    MDNS.update();
 
 
 }
