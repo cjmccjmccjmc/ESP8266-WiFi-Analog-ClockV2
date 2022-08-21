@@ -116,3 +116,6 @@ const char *GENERATED_TZ_JSON = "{\"Etc\": {\"Universal\": 0, \"GMT\": 1, \"GMT+
 
 const byte NEW_ZEALAND_TIMEZONE_POS = 39;
 
+const byte DEFAULT_TIMEZONE_POS = 0;
+
+

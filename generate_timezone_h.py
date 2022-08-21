@@ -27,6 +27,9 @@ const char *GENERATED_TZ_JSON = "{}";
 
 const byte NEW_ZEALAND_TIMEZONE_POS = {};
 
+const byte DEFAULT_TIMEZONE_POS = 0;
+
+
 """
 
 with open(INPUT_FILE_NAME, "r") as f:
