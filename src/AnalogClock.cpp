@@ -55,7 +55,6 @@ const float SYNC_ACCURACY_SECONDS = 0.5;
 const long SYNC_ACCURACY_US = SYNC_ACCURACY_SECONDS * 1000000;
 
 
-// EERAM eeRAM(0x50);
 I2C_eeprom ee(0x50, I2C_DEVICESIZE_24LC16);
 
 ESP8266WebServer analogClkServer(80);
