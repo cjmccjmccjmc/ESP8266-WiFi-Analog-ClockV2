@@ -517,66 +517,22 @@ String getUpTime() {
 //--------------------------------------------------------------------------
 void syncNTPEventFunction(NTPEvent_t e){
 
-  switch(e.event) { 
-    case noResponse:
-      Serial.println("NTP server no response");
-      break;
-    
-    case invalidAddress:
-      Serial.println("NTP server can't find server");
-      break;
-
-    case invalidPort:
-      Serial.println("NTP port already used");
-      break;
-
-    case requestSent:
-      Serial.println("NTP request sent, waiting for response");
-      break;
-
-    case partlySync:
-      Serial.println("Successful sync but offset was over threshold");
-      break;
-
-    case syncNotNeeded:
-      Serial.println("Successful sync but offset was under minimum threshold");
-      break;
-
-    case errorSending:
-      Serial.println("An error happened while sending the request");
-      break;
-
-    case responseError:
-      Serial.println("Wrong response received");
-      break;
-
-    case syncError:
-      Serial.println("Error adjusting time");
-      break;
-
-    case accuracyError:
-      Serial.println("NTP server time is not accurate enough");
-      break;
-
-   case timeSyncd:
-      lastSyncTime = NTP.getTimeStr(NTP.getLastNTPSync());
-      lastSyncDate = NTP.getDateStr(NTP.getLastNTPSync());
-      Serial.print("Got NTP time: ");
-      Serial.print(lastSyncTime+"  ");
-      Serial.println(lastSyncDate);
-      {
-        time_t tempTimeT = NTP.getLastNTPSync();
-        tm* tempTimeLocal = localtime(&tempTimeT);
-        // Localtime() seems to return the year as year since 1900 instead of 1970 as asumed by setTime.
-        setTime(tempTimeLocal->tm_hour, tempTimeLocal->tm_min, tempTimeLocal->tm_sec, tempTimeLocal->tm_mday, tempTimeLocal->tm_mon, tempTimeLocal->tm_year % 100);
-      }
-      break;
-
-    default:
-      Serial.print("Unknown NTP sync process event: ");
-      Serial.print(e.event);
-      Serial.println();
-
+  if ( e.event == timeSyncd) {
+    lastSyncTime = NTP.getTimeStr(NTP.getLastNTPSync());
+    lastSyncDate = NTP.getDateStr(NTP.getLastNTPSync());
+    Serial.print("Got NTP time: ");
+    Serial.print(lastSyncTime+"  ");
+    Serial.println(lastSyncDate);
+    {
+      time_t tempTimeT = NTP.getLastNTPSync();
+      tm* tempTimeLocal = localtime(&tempTimeT);
+      // Localtime() seems to return the year as year since 1900 instead of 1970 as asumed by setTime.
+      setTime(tempTimeLocal->tm_hour, tempTimeLocal->tm_min, tempTimeLocal->tm_sec, tempTimeLocal->tm_mday, tempTimeLocal->tm_mon, tempTimeLocal->tm_year % 100);
+    }
+  } else {
+    // Log non-sync events
+      Serial.println(NTP.ntpEvent2str(e));
   }
+
 }
 
