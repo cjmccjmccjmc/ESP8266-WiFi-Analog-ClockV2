@@ -74,7 +74,7 @@ byte analogClkDay=0;
 byte analogClkMonth=0;
 byte analogClkYear=0;
 unsigned long lastPulseTime = 0;
-
+byte timezonePosition = DEFAULT_TIMEZONE_POS;
 
 void handleRoot();
 void handleSave();
@@ -121,25 +121,6 @@ void setup() {
   while ( !wifiManager.autoConnect(AP_NAME) ) {
     ; // keep looping until conenction made.
   }
-
-  //--------------------------------------------------------------------------
-   // connect to the NTP server...
-   //--------------------------------------------------------------------------
-   NTP.begin(NTPSERVERNAME,true);                        // start the NTP client
-   NTP.setMinSyncAccuracy(SYNC_ACCURACY_US);
-
-   NTP.onNTPSyncEvent(syncNTPEventFunction);
-   if (!NTP.setInterval(10,600)) Serial.println("Problem setting NTP interval.");
-
-   int waitCount = 500;
-   Serial.print("Waiting for sync with NTP server");   
-   while (timeStatus() != timeSet) {                           // wait until the the time is set and synced
-      waitTime = millis()+500;
-      while(millis() < waitTime)yield();                       // wait one half second       
-      Serial.print(".");                                       // print a "." every half second
-      --waitCount;
-      if (waitCount==0) ESP.restart();                         // if time is not set and synced after 50 seconds, restart the ESP8266
-   }
 
    //--------------------------------------------------------------------------
    // prompt for web configuration...
@@ -189,8 +170,7 @@ void setup() {
       analogClkDay = ee.readByte(DAY);
       analogClkMonth = ee.readByte(MONTH);
       analogClkYear = ee.readByte(YEAR);      
-      byte timezonePosition = ee.readByte(TIMEZONE); 
-      NTP.setTimeZone(GENERATED_TZ_LOOKUP[timezonePosition]);
+      timezonePosition = ee.readByte(TIMEZONE); 
       setupComplete = true;      
    }
    //--------------------------------------------------------------------------   
@@ -213,6 +193,28 @@ void setup() {
         MDNS.update();
       }
    }
+
+
+  //--------------------------------------------------------------------------
+   // connect to the NTP server...
+   //--------------------------------------------------------------------------
+   NTP.setTimeZone(GENERATED_TZ_LOOKUP[timezonePosition]);
+   NTP.setMinSyncAccuracy(SYNC_ACCURACY_US);
+   NTP.onNTPSyncEvent(syncNTPEventFunction);
+   if (!NTP.setInterval(10,600)) Serial.println("Problem setting NTP interval.");
+   NTP.begin(NTPSERVERNAME,true);                        // start the NTP client
+
+   int waitCount = 500;
+   Serial.print("Waiting for sync with NTP server");   
+   while (timeStatus() != timeSet) {                           // wait until the the time is set and synced
+      waitTime = millis()+500;
+      while(millis() < waitTime)yield();                       // wait one half second       
+      Serial.print(".");                                       // print a "." every half second
+      --waitCount;
+      if (waitCount==0) ESP.restart();                         // if time is not set and synced after 50 seconds, restart the ESP8266
+   }
+
+
    clockTimer.attach_ms(100,checkClock);                      // start up 100 millisecond clock timer
 }
 
@@ -471,8 +473,7 @@ void handleSave() {
          String secondValue = analogClkServer.arg("second");
          analogClkSecond = secondValue.toInt();
          String zoneValue = analogClkServer.arg("city");
-         int timezonePosition = zoneValue.toInt();
-         NTP.setTimeZone(GENERATED_TZ_LOOKUP[timezonePosition]);
+         timezonePosition = zoneValue.toInt();
 
          analogClkWeekday=weekday();
          analogClkDay=day();
@@ -563,8 +564,12 @@ void syncNTPEventFunction(NTPEvent_t e){
       Serial.print("Got NTP time: ");
       Serial.print(lastSyncTime+"  ");
       Serial.println(lastSyncDate);
-
-      setTime(NTP.getLastNTPSync());
+      {
+        time_t tempTimeT = NTP.getLastNTPSync();
+        tm* tempTimeLocal = localtime(&tempTimeT);
+        // Localtime() seems to return the year as year since 1900 instead of 1970 as asumed by setTime.
+        setTime(tempTimeLocal->tm_hour, tempTimeLocal->tm_min, tempTimeLocal->tm_sec, tempTimeLocal->tm_mday, tempTimeLocal->tm_mon, tempTimeLocal->tm_year % 100);
+      }
       break;
 
     default:
@@ -573,6 +578,5 @@ void syncNTPEventFunction(NTPEvent_t e){
       Serial.println();
 
   }
-
 }
 
