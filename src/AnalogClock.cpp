@@ -43,7 +43,7 @@ const uint16_t TIMEZONE = HOUR+7;                         // address in EERAM fo
 const uint16_t CHECK1 = HOUR+8;                         // address in EERAM for 1st check byte 0xAA
 const uint16_t CHECK2 = HOUR+9;                         // address in EERAM for 2nd check byte 0x55
 
-
+const uint16_t LAST_EERAM_POS = CHECK2;
 
 const char* NTPSERVERNAME = "time.google.com";
 // const char* NTPSERVERNAME = "0.us.pool.ntp.org";
@@ -180,7 +180,7 @@ void setup() {
    // get values from setup web page...   
    //--------------------------------------------------------------------------
    else {
-      for (byte i=0;i<10;i++) {
+      for (byte i=0;i<=LAST_EERAM_POS;i++) {
          ee.writeByte(HOUR+i,0);                                // clear eeram     
       }
 
