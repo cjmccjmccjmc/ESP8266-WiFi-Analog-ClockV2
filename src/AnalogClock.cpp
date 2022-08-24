@@ -43,6 +43,8 @@ const uint16_t TIMEZONE = HOUR+7;                         // address in EERAM fo
 const uint16_t CHECK1 = HOUR+8;                         // address in EERAM for 1st check byte 0xAA
 const uint16_t CHECK2 = HOUR+9;                         // address in EERAM for 2nd check byte 0x55
 
+
+
 const char* NTPSERVERNAME = "time.google.com";
 // const char* NTPSERVERNAME = "0.us.pool.ntp.org";
 // const char* NTPSERVERNAME = "time.nist.gov";
@@ -53,8 +55,10 @@ const char* NTPSERVERNAME = "time.google.com";
 // Set the time for alignment sync with NTP server, since this is a wallclock, kept it within half a second. 
 const float SYNC_ACCURACY_SECONDS = 0.5;
 const long SYNC_ACCURACY_US = SYNC_ACCURACY_SECONDS * 1000000;
+const int THRESHOLD_HOUR_BUMP = 12;
 
 
+// EERAM eeRAM(0x50);
 I2C_eeprom ee(0x50, I2C_DEVICESIZE_24LC16);
 
 ESP8266WebServer analogClkServer(80);
@@ -212,6 +216,12 @@ void setup() {
       --waitCount;
       if (waitCount==0) ESP.restart();                         // if time is not set and synced after 50 seconds, restart the ESP8266
    }
+
+  // Check if need to bump the internal clock hour value foward 12 hours. 
+  if ( abs(analogClkHour - hour()) >= THRESHOLD_HOUR_BUMP ) {
+    analogClkHour = (analogClkHour + 12) % 24; 
+    Serial.println("Bumping internal position of hour hand forward half a day");
+  } 
 
 
    clockTimer.attach_ms(100,checkClock);                      // start up 100 millisecond clock timer
