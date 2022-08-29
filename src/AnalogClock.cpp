@@ -15,9 +15,6 @@
 #include "FS.h"
 #include <LittleFS.h>
 
-
-#include "Generated_Timezones.hpp"
-
 static const uint8_t COIL1 = D3; // output to clock's lavet motor coil
 static const uint8_t COIL2 = D7; // output to clock's lavet motor coil
 
@@ -49,9 +46,8 @@ const uint16_t WEEKDAY = HOUR+3;                         // address in EERAM for
 const uint16_t DAY = HOUR+4;                         // address in EERAM for analogClkDay
 const uint16_t MONTH = HOUR+5;                         // address in EERAM for analogClkMonth
 const uint16_t YEAR = HOUR+6;                         // address in EERAM for analogClkYear
-const uint16_t TIMEZONE = HOUR+7;                         // address in EERAM for timezone
-const uint16_t CHECK1 = HOUR+8;                         // address in EERAM for 1st check byte 0xAA
-const uint16_t CHECK2 = HOUR+9;                         // address in EERAM for 2nd check byte 0x55
+const uint16_t CHECK1 = HOUR+7;                         // address in EERAM for 1st check byte 0xAA
+const uint16_t CHECK2 = HOUR+8;                         // address in EERAM for 2nd check byte 0x55
 
 const uint16_t LAST_EERAM_POS = CHECK2;
 
@@ -87,7 +83,8 @@ byte analogClkDay=0;
 byte analogClkMonth=0;
 byte analogClkYear=0;
 unsigned long lastPulseTime = 0;
-byte timezonePosition = DEFAULT_TIMEZONE_POS;
+
+const char * TEMP_TZ_UNTIL_CONFIG = "NZST-12NZDT,M9.5.0,M4.1.0/3";
 
 void handleRoot();
 void handleSave();
@@ -195,7 +192,6 @@ void setup() {
       analogClkDay = ee.readByte(DAY);
       analogClkMonth = ee.readByte(MONTH);
       analogClkYear = ee.readByte(YEAR);      
-      timezonePosition = ee.readByte(TIMEZONE); 
       setupComplete = true;      
    }
    //--------------------------------------------------------------------------   
@@ -223,7 +219,7 @@ void setup() {
   //--------------------------------------------------------------------------
    // connect to the NTP server...
    //--------------------------------------------------------------------------
-   NTP.setTimeZone(GENERATED_TZ_LOOKUP[timezonePosition]);
+   NTP.setTimeZone(TEMP_TZ_UNTIL_CONFIG);
    NTP.setMinSyncAccuracy(SYNC_ACCURACY_US);
    NTP.onNTPSyncEvent(syncNTPEventFunction);
    if (!NTP.setInterval(10,600)) Serial.println("Problem setting NTP interval.");
@@ -396,7 +392,6 @@ if ( ! setupComplete ) {
          String secondValue = analogClkServer.arg("second");
          analogClkSecond = secondValue.toInt();
          String zoneValue = analogClkServer.arg("city");
-         timezonePosition = zoneValue.toInt();
 
          analogClkWeekday=weekday();
          analogClkDay=day();
@@ -411,7 +406,6 @@ if ( ! setupComplete ) {
          ee.writeByte(DAY,analogClkDay);
          ee.writeByte(MONTH,analogClkMonth); 
          ee.writeByte(YEAR,analogClkYear); 
-         ee.writeByte(TIMEZONE,timezonePosition);
          ee.writeByte(CHECK1,0xAA);
          ee.writeByte(CHECK2,0x55);
          setupComplete = true;                               // set flag to indicate that we're done with setup   
