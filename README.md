@@ -75,7 +75,10 @@ Once the above circuit is built and mount it on the back of the clock as indicat
 
 1. Clone this repo and run up PlatformIO.
 2. Connect ESP8266 circuit and do a build; libraries will automatically download.
-3. Run upload and monitor
+3. Run upload filesystem and firmware then monitor
+     ``platformio.exe run --target uploadfs --target upload --target monitor --environment d1_mini``
+4. When prompted, press key for web configuration
+
 
 ### Trouble Shooting
 
