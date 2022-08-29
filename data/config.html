@@ -15,53 +15,33 @@
    </ol>
    <table>
    <tr>
-   <td>
-   <label>
-   Hour   (0-11):</label>
-   </td>
-   <td>
-   <input type="number" min="0" max="23" size="3" name="hour"   value="">
-   </td>
+   <td><label>Hour (1-12):</label></td>
+   <td><input type="number" min="0" max="23" size="3" name="hour"   value="12"></td>
    </tr>
    <tr>
-   <td>
-   <label>
-   Minute (0-59):</label>
-   </td>
-   <td>
-   <input type="number" min="0" max="59" size="3" name="minute" value="">
-   </td>
+    <td><label>Minute (0-59):</label></td>
+   <td><input type="number" min="0" max="59" size="3" name="minute" value="0"></td>
    </tr>
    <tr>
-   <td>
-   <label>
-   Second (0-59):</label>
-   </td>
-   <td>
-   <input type="number" min="0" max="59" size="3" name="second" value="">
-   </td>
+   <td><label>Second (0-59):</label></td>
+   <td><input type="number" min="0" max="59" size="3" name="second" value="0"></td>
    </tr>
    <tr>
-   <td>
-   <label>
-   Timezone:
-   </label>
-   </td>
-   <td>
-   <select onchange="onAreaChange()" name="area" size="11" id="area">
+   <td><label>Timezone:</label></td>
+   <td><select onchange="onAreaChange()" name="area" size="11" id="area">
      <option value="noarea">No Area</option>
-   </select>
-   </td>
-   <td>
-   <select name="city" id="city" size="11">
+   </select></td>
+   <td><select name="city" id="city" size="11">
      <option value="nocity">----</option>
-   </select>
-   </td>
+   </select></td>
    </tr>
    </table>
+
    <input type="submit" value="Submit">
-   </form>
-   <script src="app.js"></script>
+
+  </form>
+
+  <script src="app.js"></script>
    <script>setupConfig();</script>
   </body>
 </html>
