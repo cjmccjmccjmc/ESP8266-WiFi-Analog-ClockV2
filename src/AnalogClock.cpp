@@ -12,6 +12,9 @@
 #include "I2C_eeprom.h"
 #include <WiFiManager.h>
 #include <ESP8266mDNS.h>
+#include "FS.h"
+#include <LittleFS.h>
+
 
 #include "Generated_Timezones.hpp"
 
@@ -31,6 +34,13 @@ const unsigned long MIN_PULSE_GAP_MS = 400;
 const char* AP_NAME = "ClockSetupAP";
 const char* MDNS_HOSTNAME = "myclock";
 const int MAX_DNS_ATTEMPTS = 10;
+
+
+const char* CONFIG_URL = "/config";
+const char* CLOCK_URL = "/clock";
+const char* SAVE_URL = "/save";
+const char* TZ_JSON = "/timezone.json";
+const char* APP_JS = "/app.js";
 
 const uint16_t HOUR = 0x0000;                         // address in EERAM for analogClkHour
 const uint16_t MINUTE = HOUR+1;                         // address in EERAM for analogClkMinute
@@ -118,7 +128,15 @@ void setup() {
    Serial.printf("Free size: %u\n",ESP.getFreeSketchSpace());
    Serial.print(ESP.getResetReason());
    Serial.println(" Reset");
-   
+
+  // Setup the File System.
+  if(!LittleFS.begin()){
+    Serial.println("An Error has occurred while mounting LittleFS");
+    delay(5);
+    ESP.reset();
+  }
+
+
   // Wifi setup.
   WiFiManager wifiManager; 
   while ( !wifiManager.autoConnect(AP_NAME) ) {
@@ -145,9 +163,13 @@ void setup() {
    //--------------------------------------------------------------------------
    // start the web server
    //--------------------------------------------------------------------------
-   analogClkServer.on("/",handleRoot);
-   analogClkServer.on("/clock",handleRoot);
-   analogClkServer.on("/save",handleSave);
+
+   analogClkServer.on("/", handleRoot);
+   analogClkServer.serveStatic(CONFIG_URL, LittleFS, "/config.html");
+   analogClkServer.serveStatic(CLOCK_URL, LittleFS, "/main.html");
+   analogClkServer.serveStatic(TZ_JSON, LittleFS, "/tz.json");
+   analogClkServer.serveStatic(APP_JS, LittleFS, "/app.js");
+   analogClkServer.on(SAVE_URL,handleSave);
    analogClkServer.begin();
 
   // Publish mDNS
@@ -190,12 +212,12 @@ void setup() {
         Serial.printf("\nBrowse to http://%s to set up the analog clock.\n\r",WiFi.localIP().toString().c_str());
       }
 
-      byte lastSeconds = second();
       while(!setupComplete) {
-         analogClkServer.handleClient();
+        analogClkServer.handleClient();
         MDNS.update();
       }
-   }
+
+   }  
 
 
   //--------------------------------------------------------------------------
@@ -216,6 +238,11 @@ void setup() {
       --waitCount;
       if (waitCount==0) ESP.restart();                         // if time is not set and synced after 50 seconds, restart the ESP8266
    }
+
+  Serial.printf("%02d/%02d/%04d %02d:%02d:%02d  %02d/%02d/%04d %02d:%02d:%02d\n\r",
+  day(), month(), year(), hour(),minute(),second(), 
+  analogClkDay, analogClkMonth, analogClkYear, analogClkHour,analogClkMinute,analogClkSecond);                      
+
 
   // Check if need to bump the internal clock hour value foward 12 hours. 
   if ( abs(analogClkHour - hour()) >= THRESHOLD_HOUR_BUMP ) {
@@ -247,7 +274,9 @@ void loop() {
     // print analog clock and actual time if values have changed  
     if (printTime) {                                           // when the analog clock is updated...
        printTime = false;
-       Serial.printf("%02d:%02d:%02d  %02d:%02d:%02d\n\r",hour(),minute(),second(),analogClkHour,analogClkMinute,analogClkSecond);                      
+       Serial.printf("%02d/%02d/%04d %02d:%02d:%02d  %02d/%02d/%04d %02d:%02d:%02d\n\r",
+       day(), month(), year(), hour(),minute(),second(), 
+       analogClkDay, analogClkMonth, analogClkYear, analogClkHour,analogClkMinute,analogClkSecond);                      
     }
 
     // handle requests from the web server  
@@ -330,150 +359,35 @@ void updateClock() {
   advanceClock = false;                         // set flag that have advanced clock
 }
 
-//--------------------------------------------------------------------------
-// Handles requests from the setup server client.
-//--------------------------------------------------------------------------
+
+// -------------------------------------------------------------------------
+// Redirects Main page
+// -------------------------------------------------------------------------
+
 void handleRoot() {
-   if (setupComplete) {
-      char timeStr[12];
-      sprintf(timeStr,"%02d:%02d:%02d", analogClkHour,analogClkMinute,analogClkSecond);
-      analogClkServer.send(200, "text/html",
-      "<!DOCTYPE HTML>"
-      "<html>"
-        "<head>"
-          "<META HTTP-EQUIV=\"refresh\" CONTENT=\"1\">"
-          "<meta content=\"text/html; charset=utf-8\">"
-          "<title> ESP8266 Analog Clock </title>"
-        "</head>"
-        "<body style=\"background-color:lightgrey;\">"
-          "<h1>Analog Clock&nbsp;&nbsp;"+String(timeStr)+"</h1>"
-          "<p>Uptime: "+getUpTime()+"</p>"
-          "<p>Last NTP sync at "+lastSyncTime+" on "+lastSyncDate+"</p>"
-        "</body>"
-      "</html>");
-   }
-   else {
-      analogClkServer.send(200, "text/html",
-      "<!DOCTYPE HTML>"
-      "<html>"
-        "<head>"
-          "<meta content=\"text/html; charset=utf-8\">"
-          "<title>Analog Clock Setup</title>"
-        "</head>"
-        "<body>"
-          "<form action=\"/save\" method=\"POST\">"
-          "<h1> Analog Clock Setup</h1>"
-          "<p>Since the analog clock hands do not provide feedback of their position, you must specify<br>the starting position of the clock hour, minute and second hands. Do not leave any fields blank!</p>"
-          "<ol>"
-            "<li>Enter the current position of the hour, minute and second hands.</li>"
-            "<li>Select your time zone.</li>"
-            "<li>Click the \"Submit\" button.</li>"
-          "</ol>"
-          "<script>"
-          "var tzLook =" + String(GENERATED_TZ_JSON) + ";"
-          "</script>"
-          "<table>"
-          "<tr>"
-          "<td>"
-          "<label>"
-          "Hour   (0-11):</label>"
-          "</td>"
-          "<td>"
-          "<input type=\"number\" min=\"0\" max=\"23\" size=\"3\" name=\"hour\"   value=\"\">"
-          "</td>"
-          "</tr>"
-          "<tr>"
-          "<td>"
-          "<label>"
-          "Minute (0-59):</label>"
-          "</td>"
-          "<td>"
-          "<input type=\"number\" min=\"0\" max=\"59\" size=\"3\" name=\"minute\" value=\"\">"
-          "</td>"
-          "</tr>"
-          "<tr>"
-          "<td>"
-          "<label>"
-          "Second (0-59):</label>"
-          "</td>"
-          "<td>"
-          "<input type=\"number\" min=\"0\" max=\"59\" size=\"3\" name=\"second\" value=\"\">"
-          "</td>"
-          "</tr>"
-          "<tr>"
-          "<td>"
-          "<label>"
-          "Timezone:"
-          "</label>"
-          "</td>"
-          "<td>"
-          "<select onchange=\"onAreaChange()\" name=\"area\" size=\"11\" id=\"area\">"
-          "  <option value=\"noarea\">No Area</option>"
-          "</select>"
-          "</td>"
-          "<td>"
-          "<select name=\"city\" id=\"city\" size=\"11\">"
-          "  <option value=\"nocity\">----</option>"
-          "</select>"
-          "</td>"
-          "</tr>"
-          "</table>"
-          "<input type=\"submit\" value=\"Submit\">"
-          "</form>"
-          "<script>"
-          "function removeOptions(selectElement) {"
-          "   var i, L = selectElement.options.length - 1;"
-          "   for(i = L; i >= 0; i--) {"
-          "      selectElement.remove(i);"
-          "   }"
-          "}"
-          "function setSelectToValues(selRef, lst) {"
-          "    removeOptions(selRef);"
-          "    for (const val in lst) {"
-          "	var el = document.createElement(\"option\");"
-          "	el.textContent = val;"
-          "	if ( typeof(lst[val]) == \"number\" ) {"
-          "	    el.value = lst[val];"
-          "	} else {"
-          "	    el.value = val;"
-          "	}"
-          "	selRef.appendChild(el);"
-          "    }"
-          "    selRef.selectedIndex = \"0\""
-          "}"
-          "function onAreaChange() {   "
-          "    setSelectToValues(city, tzLook[area.value])"
-          "}"
-          "setSelectToValues(area, tzLook);"
-          "browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone.split(\"/\");"
-          "area.value = browserTz[0];"
-          "onAreaChange();"
-          "city.value = tzLook[area.value][browserTz[1]];"
-          "</script>"
-        "</body>"
-      "</html>");  
+
+  const char * destUrl = CLOCK_URL;
+  if (! setupComplete) {
+    destUrl =  CONFIG_URL;
   }
+
+  analogClkServer.sendHeader("Location", String(destUrl), true);
+  analogClkServer.send ( 302, "text/plain", "");          
 }
+
+
 
 
 //--------------------------------------------------------------------------
 // Handles save requests.
 //--------------------------------------------------------------------------
 void handleSave() {
-  analogClkServer.send(200, "text/html",
-  "<!DOCTYPE HTML>"
-  "<html>"
-    "<head>"
-      "<META HTTP-EQUIV=\"refresh\" CONTENT=\"5; URL=\'/clock\'\">"
-      "<meta content=\"text/html; charset=utf-8\">"
-      "<title> ESP8266 Analog Clock - Saving...</title>"
-    "</head>"
-    "<body style=\"background-color:lightgrey;\">"
-      "<h1>Saving Analog Clock...</h1>"
-      "Redirecting after save."
-    "</body>"
-  "</html>");
-          
+
+Serial.println("Entered handle save");
+
+// Don't run if flag has the setupComplete to prevent changing the time setup unless already done.
+if ( ! setupComplete ) {
+
   if (analogClkServer.hasArg("hour")&&analogClkServer.hasArg("minute")&&analogClkServer.hasArg("second")&&analogClkServer.hasArg("city")) {
          String hourValue = analogClkServer.arg("hour");
          analogClkHour = hourValue.toInt();
@@ -502,6 +416,10 @@ void handleSave() {
          ee.writeByte(CHECK2,0x55);
          setupComplete = true;                               // set flag to indicate that we're done with setup   
       }
+  }
+  
+  analogClkServer.sendHeader("Location", String("/"), true);
+  analogClkServer.send ( 302, "text/plain", "");
 }
 
 //--------------------------------------------------------------------------

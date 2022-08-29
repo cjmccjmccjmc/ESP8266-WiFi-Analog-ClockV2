@@ -1,0 +1,67 @@
+<!DOCTYPE HTML>
+<html>
+ <head>
+   <meta content="text/html; charset=utf-8">
+   <title>Analog Clock Setup</title>
+ </head>
+ <body>
+   <form action="/save" method="POST">
+   <h1> Analog Clock Setup</h1>
+   <p>Since the analog clock hands do not provide feedback of their position, you must specify<br>the starting position of the clock hour, minute and second hands. Do not leave any fields blank!</p>
+   <ol>
+     <li>Enter the current position of the hour, minute and second hands.</li>
+     <li>Select your time zone.</li>
+     <li>Click the "Submit" button.</li>
+   </ol>
+   <table>
+   <tr>
+   <td>
+   <label>
+   Hour   (0-11):</label>
+   </td>
+   <td>
+   <input type="number" min="0" max="23" size="3" name="hour"   value="">
+   </td>
+   </tr>
+   <tr>
+   <td>
+   <label>
+   Minute (0-59):</label>
+   </td>
+   <td>
+   <input type="number" min="0" max="59" size="3" name="minute" value="">
+   </td>
+   </tr>
+   <tr>
+   <td>
+   <label>
+   Second (0-59):</label>
+   </td>
+   <td>
+   <input type="number" min="0" max="59" size="3" name="second" value="">
+   </td>
+   </tr>
+   <tr>
+   <td>
+   <label>
+   Timezone:
+   </label>
+   </td>
+   <td>
+   <select onchange="onAreaChange()" name="area" size="11" id="area">
+     <option value="noarea">No Area</option>
+   </select>
+   </td>
+   <td>
+   <select name="city" id="city" size="11">
+     <option value="nocity">----</option>
+   </select>
+   </td>
+   </tr>
+   </table>
+   <input type="submit" value="Submit">
+   </form>
+   <script src="app.js"></script>
+   <script>setupConfig();</script>
+  </body>
+</html>
