@@ -53,8 +53,12 @@ function removeOptions(selectElement) {
         area.value = browserTz[0];
         onAreaChange();
         document.getElementById('city').value = browserTz[1];
-        
+      
     });
+    var today = new Date();
+    document.getElementById('inputhour').value = today.getHours() % 12;
+    document.getElementById('inputminute').value = today.getMinutes();
+    document.getElementById('inputsecond').value = today.getSeconds();
 
  }
 
