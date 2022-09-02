@@ -194,6 +194,25 @@ void setup() {
 
 
   //--------------------------------------------------------------------------
+  // connect to the NTP server, do this first so year, month, day gets setup.
+  //--------------------------------------------------------------------------
+   NTP.setMinSyncAccuracy(SYNC_ACCURACY_US);
+   NTP.onNTPSyncEvent(syncNTPEventFunction);
+   if (!NTP.setInterval(10,600)) Serial.println("Problem setting NTP interval.");
+   NTP.begin(NTPSERVERNAME,true);                        // start the NTP client
+
+   int waitCount = 500;
+   Serial.print("Waiting for sync with NTP server");   
+   while (timeStatus() != timeSet) {                           // wait until the the time is set and synced
+      waitTime = millis()+500;
+      while(millis() < waitTime)yield();                       // wait one half second       
+      Serial.print(".");                                       // print a "." every half second
+      --waitCount;
+      if (waitCount==0) ESP.restart();                         // if time is not set and synced after 50 seconds, restart the ESP8266
+   }
+
+
+  //--------------------------------------------------------------------------
   // read analog clock values stored in EERam  
   //--------------------------------------------------------------------------
 
@@ -244,6 +263,8 @@ void setup() {
       timezone = DEFAULT_TIMEZONE;
     }
 
+    // Set timezone now, so takes into account either the set config or loaded config. 
+    NTP.setTimeZone(timezone.c_str());
 
     setupComplete = true;      
   }
@@ -268,25 +289,6 @@ void setup() {
 
    }  
 
-
-  //--------------------------------------------------------------------------
-   // connect to the NTP server...
-   //--------------------------------------------------------------------------
-   NTP.setTimeZone(timezone.c_str());
-   NTP.setMinSyncAccuracy(SYNC_ACCURACY_US);
-   NTP.onNTPSyncEvent(syncNTPEventFunction);
-   if (!NTP.setInterval(10,600)) Serial.println("Problem setting NTP interval.");
-   NTP.begin(NTPSERVERNAME,true);                        // start the NTP client
-
-   int waitCount = 500;
-   Serial.print("Waiting for sync with NTP server");   
-   while (timeStatus() != timeSet) {                           // wait until the the time is set and synced
-      waitTime = millis()+500;
-      while(millis() < waitTime)yield();                       // wait one half second       
-      Serial.print(".");                                       // print a "." every half second
-      --waitCount;
-      if (waitCount==0) ESP.restart();                         // if time is not set and synced after 50 seconds, restart the ESP8266
-   }
 
   Serial.printf("%02d/%02d/%04d %02d:%02d:%02d  %02d/%02d/%04d %02d:%02d:%02d\n\r",
   day(), month(), year(), hour(),minute(),second(), 
@@ -466,7 +468,7 @@ void handleSave() {
 
   String zoneValue = timeZ["string"];
   String region = timeZ["region"];
-  String city = timeZ["region"];
+  String city = timeZ["city"];
 
   // Get the now time.
   analogClkWeekday=weekday();
