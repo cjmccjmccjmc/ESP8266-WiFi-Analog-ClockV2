@@ -62,3 +62,34 @@ function removeOptions(selectElement) {
 
  }
 
+function onSave() {
+
+    console.log("On save");
+    var msg = {};
+
+    msg["clockhands"] = {};
+    msg["clockhands"]["hour"] = document.getElementById('inputhour').value;
+    msg["clockhands"]["minute"] = document.getElementById('inputminute').value;
+    msg["clockhands"]["second"] = document.getElementById('inputsecond').value;
+
+
+    msg["timezone"] = {};
+    msg["timezone"]["region"] = document.getElementById('area').value;
+    msg["timezone"]["city"] = document.getElementById('city').value;
+    msg["timezone"]["string"] = tzLook[document.getElementById('area').value][document.getElementById('city').value];
+
+
+    fetch(uRLPrefix + 'api/config', {
+        method: 'put',
+        body: JSON.stringify(msg)
+    }).then(function (response) {
+        if (response.ok) {
+            window.location.replace("/");
+        } else {
+            document.getElementById('statusmessage').value = "Error saving, response logged to console";
+            console.log(response)
+        }
+    });
+
+
+}

@@ -14,6 +14,7 @@
 #include <ESP8266mDNS.h>
 #include "FS.h"
 #include <LittleFS.h>
+#include <ArduinoJson.h>
 
 static const uint8_t COIL1 = D3; // output to clock's lavet motor coil
 static const uint8_t COIL2 = D7; // output to clock's lavet motor coil
@@ -35,7 +36,7 @@ const int MAX_DNS_ATTEMPTS = 10;
 
 const char* CONFIG_URL = "/config";
 const char* CLOCK_URL = "/clock";
-const char* SAVE_URL = "/save";
+const char* CONFIG_API = "/api/config";
 const char* TZ_JSON = "/timezone.json";
 const char* APP_JS = "/app.js";
 
@@ -58,11 +59,23 @@ const char* NTPSERVERNAME = "time.google.com";
 // const char* NTPSERVERNAME = "time-a-g.nist.gov";     // NIST, Gaithersburg, Maryland
 
 
+const char* DEFAULT_TIMEZONE = "UTC0";
+const char* CONFIG_ZONE = "zonevalue";
+const char* CONFIG_REGION = "region";
+const char* CONFIG_CITY = "city";
+
+
+const static size_t JSON_CAPACITY = 1024;
+const static size_t MAX_CONFIG_FILE_SIZE = JSON_CAPACITY;
+StaticJsonDocument<JSON_CAPACITY> doc;
+
+const char *CONFIG_FILENAME = "/config.json";
+
 // Set the time for alignment sync with NTP server, since this is a wallclock, kept it within half a second. 
 const float SYNC_ACCURACY_SECONDS = 0.5;
 const long SYNC_ACCURACY_US = SYNC_ACCURACY_SECONDS * 1000000;
 const int THRESHOLD_HOUR_BUMP = 12;
-
+String timezone = "";
 
 // EERAM eeRAM(0x50);
 I2C_eeprom ee(0x50, I2C_DEVICESIZE_24LC16);
@@ -83,8 +96,6 @@ byte analogClkDay=0;
 byte analogClkMonth=0;
 byte analogClkYear=0;
 unsigned long lastPulseTime = 0;
-
-const char * TEMP_TZ_UNTIL_CONFIG = "NZST-12NZDT,M9.5.0,M4.1.0/3";
 
 void handleRoot();
 void handleSave();
@@ -166,7 +177,10 @@ void setup() {
    analogClkServer.serveStatic(CLOCK_URL, LittleFS, "/main.html");
    analogClkServer.serveStatic(TZ_JSON, LittleFS, "/tz.json");
    analogClkServer.serveStatic(APP_JS, LittleFS, "/app.js");
-   analogClkServer.on(SAVE_URL,handleSave);
+
+   analogClkServer.serveStatic(CONFIG_API, LittleFS, CONFIG_FILENAME);
+   analogClkServer.on(CONFIG_API,HTTP_PUT, handleSave);
+
    analogClkServer.begin();
 
   // Publish mDNS
@@ -179,21 +193,60 @@ void setup() {
   MDNS.addService("http", "tcp", 80);
 
 
-   //--------------------------------------------------------------------------
-   // read analog clock values stored in EERam  
-   //--------------------------------------------------------------------------
+  //--------------------------------------------------------------------------
+  // read analog clock values stored in EERam  
+  //--------------------------------------------------------------------------
 
-   if((ee.readByte(CHECK1)==0xAA)&&(ee.readByte(CHECK2)==0x55)&&(!inputAvail)){
-      Serial.println("\nReading values from EERAM.");
-      analogClkHour = ee.readByte(HOUR);
-      analogClkMinute = ee.readByte(MINUTE);
-      analogClkSecond = ee.readByte(SECOND);
-      analogClkWeekday = ee.readByte(WEEKDAY);
-      analogClkDay = ee.readByte(DAY);
-      analogClkMonth = ee.readByte(MONTH);
-      analogClkYear = ee.readByte(YEAR);      
-      setupComplete = true;      
-   }
+  if((ee.readByte(CHECK1)==0xAA)&&(ee.readByte(CHECK2)==0x55)&&(!inputAvail)){
+    analogClkHour = ee.readByte(HOUR);
+    analogClkMinute = ee.readByte(MINUTE);
+    analogClkSecond = ee.readByte(SECOND);
+    analogClkWeekday = ee.readByte(WEEKDAY);
+    analogClkDay = ee.readByte(DAY);
+    analogClkMonth = ee.readByte(MONTH);
+    analogClkYear = ee.readByte(YEAR);      
+
+    Serial.println("\nReading values from Config.");
+    File configFile = LittleFS.open(CONFIG_FILENAME, "r");
+    bool failedToReadConfig = false;
+
+    if (!configFile) {
+      Serial.println("Failed to open config file");
+      failedToReadConfig = true;
+    } else {
+
+      size_t size = configFile.size();
+      if (size > MAX_CONFIG_FILE_SIZE) {
+        Serial.println("Config file size is too large");
+        failedToReadConfig = true;
+      } else {
+
+        // Allocate a buffer to store contents of the file.
+        std::unique_ptr<char[]> buf(new char[size]);
+        configFile.readBytes(buf.get(), size);
+        StaticJsonDocument<MAX_CONFIG_FILE_SIZE> json;
+        DeserializationError error = deserializeJson(json, buf.get());
+        if (error) {
+          Serial.println("Failed to parse config file");
+          failedToReadConfig = true;
+        } else {
+          // Can read data
+
+          timezone = json[CONFIG_ZONE].as<String>().c_str();
+          failedToReadConfig = false;
+        }
+      }
+    }
+    
+
+    if (failedToReadConfig) {
+      Serial.println("Using Default values for timezone");
+      timezone = DEFAULT_TIMEZONE;
+    }
+
+
+    setupComplete = true;      
+  }
    //--------------------------------------------------------------------------   
    // get values from setup web page...   
    //--------------------------------------------------------------------------
@@ -219,7 +272,7 @@ void setup() {
   //--------------------------------------------------------------------------
    // connect to the NTP server...
    //--------------------------------------------------------------------------
-   NTP.setTimeZone(TEMP_TZ_UNTIL_CONFIG);
+   NTP.setTimeZone(timezone.c_str());
    NTP.setMinSyncAccuracy(SYNC_ACCURACY_US);
    NTP.onNTPSyncEvent(syncNTPEventFunction);
    if (!NTP.setInterval(10,600)) Serial.println("Problem setting NTP interval.");
@@ -379,41 +432,78 @@ void handleRoot() {
 //--------------------------------------------------------------------------
 void handleSave() {
 
-Serial.println("Entered handle save");
+  Serial.println("Entered handle save");
 
-// Don't run if flag has the setupComplete to prevent changing the time setup unless already done.
-if ( ! setupComplete ) {
-
-  if (analogClkServer.hasArg("hour")&&analogClkServer.hasArg("minute")&&analogClkServer.hasArg("second")&&analogClkServer.hasArg("city")) {
-         String hourValue = analogClkServer.arg("hour");
-         analogClkHour = hourValue.toInt();
-         String minuteValue = analogClkServer.arg("minute");
-         analogClkMinute = minuteValue.toInt();  
-         String secondValue = analogClkServer.arg("second");
-         analogClkSecond = secondValue.toInt();
-         String zoneValue = analogClkServer.arg("city");
-
-         analogClkWeekday=weekday();
-         analogClkDay=day();
-         analogClkMonth=month();
-         analogClkYear=year()-1970; 
-
-         // save the updated values in EERam...     
-         ee.writeByte(HOUR,analogClkHour); 
-         ee.writeByte(MINUTE,analogClkMinute);
-         ee.writeByte(SECOND,analogClkSecond);      
-         ee.writeByte(WEEKDAY,analogClkWeekday);
-         ee.writeByte(DAY,analogClkDay);
-         ee.writeByte(MONTH,analogClkMonth); 
-         ee.writeByte(YEAR,analogClkYear); 
-         ee.writeByte(CHECK1,0xAA);
-         ee.writeByte(CHECK2,0x55);
-         setupComplete = true;                               // set flag to indicate that we're done with setup   
-      }
+  if ( setupComplete ) {
+    // Return error to prevent if step. 
+    analogClkServer.send ( 403, "text/plain", "Setup already complete");
+    return;
   }
-  
-  analogClkServer.sendHeader("Location", String("/"), true);
-  analogClkServer.send ( 302, "text/plain", "");
+
+  if (analogClkServer.hasArg("plain") == false){ 
+    analogClkServer.send(500, "text/plain", "Body not received");
+    return; 
+  }
+  const String body = analogClkServer.arg("plain");
+  const char* b = body.c_str();
+
+  DeserializationError error = deserializeJson(doc, b);
+
+  if (error) {
+    Serial.print(F("deserializeJson() failed: "));
+    Serial.println(error.c_str());
+    analogClkServer.send(500, "text/plain", "deserializeJson() failed");
+    return;
+  }
+
+
+  JsonObject hands = doc["clockhands"];
+  analogClkHour = hands["hour"];
+  analogClkMinute = hands["minute"];  
+  analogClkSecond = hands["second"];
+
+  JsonObject timeZ = doc["timezone"];
+
+  String zoneValue = timeZ["string"];
+  String region = timeZ["region"];
+  String city = timeZ["region"];
+
+  // Get the now time.
+  analogClkWeekday=weekday();
+  analogClkDay=day();
+  analogClkMonth=month();
+  analogClkYear=year()-1970; 
+
+  // save the updated values in EERam...     
+  ee.writeByte(HOUR,analogClkHour); 
+  ee.writeByte(MINUTE,analogClkMinute);
+  ee.writeByte(SECOND,analogClkSecond);      
+  ee.writeByte(WEEKDAY,analogClkWeekday);
+  ee.writeByte(DAY,analogClkDay);
+  ee.writeByte(MONTH,analogClkMonth); 
+  ee.writeByte(YEAR,analogClkYear); 
+  ee.writeByte(CHECK1,0xAA);
+  ee.writeByte(CHECK2,0x55);
+
+  // Save config values to local disk
+  doc.clear();
+  doc[CONFIG_ZONE] = zoneValue;
+  doc[CONFIG_REGION] = region;
+  doc[CONFIG_CITY] = city;
+
+  File configFile = LittleFS.open(CONFIG_FILENAME, "w");
+  if (!configFile) {
+    analogClkServer.send(500, "text/plain", "Failed to open config file for writing");
+    return;
+  }
+  serializeJson(doc, configFile);
+  configFile.close();
+
+
+  // Tidy up before leaving
+  doc.clear();
+  setupComplete = true;                               // set flag to indicate that we're done with setup   
+  analogClkServer.send ( 200, "text/plain", "");
 }
 
 //--------------------------------------------------------------------------
