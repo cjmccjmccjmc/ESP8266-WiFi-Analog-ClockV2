@@ -15,6 +15,7 @@
 #include "FS.h"
 #include <LittleFS.h>
 #include <ArduinoJson.h>
+#include <WebSocketsServer.h>
 
 static const uint8_t COIL1 = D3; // output to clock's lavet motor coil
 static const uint8_t COIL2 = D7; // output to clock's lavet motor coil
@@ -75,12 +76,13 @@ const char *CONFIG_FILENAME = "/config.json";
 const float SYNC_ACCURACY_SECONDS = 0.5;
 const long SYNC_ACCURACY_US = SYNC_ACCURACY_SECONDS * 1000000;
 const int THRESHOLD_HOUR_BUMP = 12;
-String timezone = "";
+String timezone = DEFAULT_TIMEZONE;
 
 // EERAM eeRAM(0x50);
 I2C_eeprom ee(0x50, I2C_DEVICESIZE_24LC16);
 
 ESP8266WebServer analogClkServer(80);
+WebSocketsServer webSocket(81);
 Ticker pulseTimer,clockTimer;
 String lastSyncTime = "";
 String lastSyncDate = "";
@@ -97,16 +99,19 @@ byte analogClkMonth=0;
 byte analogClkYear=0;
 unsigned long lastPulseTime = 0;
 
+
+// Forward declarations
 void handleRoot();
 void handleSave();
 void pulseOff();
 void pulseCoil();
 void checkClock();
 void updateClock();
-
-// Forward declarations
 void syncNTPEventFunction(NTPEvent_t);
 String getUpTime();
+void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length);
+
+
 
 //--------------------------------------------------------------------------
 // Setup
@@ -183,6 +188,10 @@ void setup() {
 
    analogClkServer.begin();
 
+   // Web socket setup
+   webSocket.begin();
+   webSocket.onEvent(webSocketEvent);
+
   // Publish mDNS
   int mdnsAttempt = 0;
   while (!MDNS.begin(MDNS_HOSTNAME, WiFi.localIP()) && mdnsAttempt <= MAX_DNS_ATTEMPTS) {
@@ -191,6 +200,7 @@ void setup() {
     mdnsAttempt++;
   }
   MDNS.addService("http", "tcp", 80);
+  MDNS.addService("ws", "tcp", 81);
 
 
   //--------------------------------------------------------------------------
@@ -289,8 +299,8 @@ void setup() {
 
    }  
 
-
-  Serial.printf("%02d/%02d/%04d %02d:%02d:%02d  %02d/%02d/%04d %02d:%02d:%02d\n\r",
+  printTime = true;
+  Serial.printf("%02d/%02d/%04d %02d:%02d:%02d  %02d/%02d/%02d %02d:%02d:%02d\n\r",
   day(), month(), year(), hour(),minute(),second(), 
   analogClkDay, analogClkMonth, analogClkYear, analogClkHour,analogClkMinute,analogClkSecond);                      
 
@@ -300,7 +310,6 @@ void setup() {
     analogClkHour = (analogClkHour + 12) % 24; 
     Serial.println("Bumping internal position of hour hand forward half a day");
   } 
-
 
    clockTimer.attach_ms(100,checkClock);                      // start up 100 millisecond clock timer
 }
@@ -325,13 +334,29 @@ void loop() {
     // print analog clock and actual time if values have changed  
     if (printTime) {                                           // when the analog clock is updated...
        printTime = false;
-       Serial.printf("%02d/%02d/%04d %02d:%02d:%02d  %02d/%02d/%04d %02d:%02d:%02d\n\r",
-       day(), month(), year(), hour(),minute(),second(), 
-       analogClkDay, analogClkMonth, analogClkYear, analogClkHour,analogClkMinute,analogClkSecond);                      
+       Serial.printf("Internal Clock: %02d:%02d:%02d %02d/%02d/%04d Clock Hands: %02d:%02d:%02d %02d/%02d/%02d\n\r",
+       hour(),minute(),second(), day(), month(), year(),  
+       analogClkHour,analogClkMinute,analogClkSecond,analogClkDay, analogClkMonth, analogClkYear);
+
+
+      char timeBuffer[50];
+      sprintf(timeBuffer, "%02d:%02d:%02d", analogClkHour, analogClkMinute, analogClkSecond);
+
+      doc.clear();
+      doc["time"] = timeBuffer;
+      doc["uptime"] = getUpTime();
+      doc["ntp"] =  lastSyncTime + " on " + lastSyncDate;      
+
+      String toSend;
+      serializeJson(doc, toSend);
+      webSocket.broadcastTXT(toSend);
     }
 
     // handle requests from the web server  
-    analogClkServer.handleClient();                                 // handle requests from status web page
+    analogClkServer.handleClient();
+
+    // Web sockets
+    webSocket.loop();
 
     // Handle mDNS lookups
     MDNS.update();
@@ -373,7 +398,7 @@ void pulseCoil() {
 // second hand needs to be advanced
 //--------------------------------------------------------------------------
 void checkClock() {
-  time_t analogClkTime = makeTime({analogClkSecond,analogClkMinute,analogClkHour,analogClkWeekday,analogClkDay,analogClkMonth,analogClkYear});
+  time_t analogClkTime = makeTime({analogClkSecond,analogClkMinute,analogClkHour,analogClkWeekday,analogClkDay,analogClkMonth,(analogClkYear+30)});
   if (analogClkTime < now()) {                    // if the analog clock is behind the actual time and needs to be advanced...
 
     // Only tigger an advance if less than minimum gap to prevent too fast advance.
@@ -394,7 +419,7 @@ void updateClock() {
               analogClkWeekday=weekday();       // update values
               analogClkDay=day();
               analogClkMonth=month();
-              analogClkYear=year()-1970;   
+              analogClkYear=year()-2000;   
               
               ee.writeByte(WEEKDAY,analogClkWeekday);// save the updated values in eeRAM
               ee.writeByte(DAY,analogClkDay);
@@ -474,7 +499,8 @@ void handleSave() {
   analogClkWeekday=weekday();
   analogClkDay=day();
   analogClkMonth=month();
-  analogClkYear=year()-1970; 
+  analogClkYear=year() - 2000; 
+  Serial.println(year());
 
   // save the updated values in EERam...     
   ee.writeByte(HOUR,analogClkHour); 
@@ -525,6 +551,10 @@ String getUpTime() {
    return daysStr+" "+hoursStr+" "+minutesStr;
 }
 
+
+
+
+
 //--------------------------------------------------------------------------
 // NTP event handler
 //--------------------------------------------------------------------------
@@ -549,3 +579,27 @@ void syncNTPEventFunction(NTPEvent_t e){
 
 }
 
+void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length) {
+
+
+  switch(type) {
+      case WStype_DISCONNECTED:
+          Serial.printf("[%u] Disconnected!\n", num);
+          break;
+      case WStype_CONNECTED: {
+          IPAddress ip = webSocket.remoteIP(num);
+          Serial.printf("[%u] Connected from %d.%d.%d.%d url: %s\n", num, ip[0], ip[1], ip[2], ip[3], payload);
+          break;
+      }
+      case WStype_TEXT:
+          Serial.printf("[%u] get Text: %s\n", num, payload);
+          break;
+      case WStype_PONG:
+          // Ignore a Pong
+          break;
+      default:
+        Serial.print("Unknown type: ");
+        Serial.println(type);
+  }
+
+}

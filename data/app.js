@@ -3,6 +3,9 @@ var uRLPrefix = "http://" + location.hostname + "/";
 
 var tzLook = {};
 
+var socketClosed = false;
+
+
 function removeOptions(selectElement) {
 
     var i, L = selectElement.options.length - 1;
@@ -64,7 +67,6 @@ function removeOptions(selectElement) {
 
 function onSave() {
 
-    console.log("On save");
     var msg = {};
 
     msg["clockhands"] = {};
@@ -93,3 +95,59 @@ function onSave() {
 
 
 }
+
+
+function startWebsocket() {
+
+    // Create a new WebSocket.
+    var socket = new WebSocket('ws://' + location.hostname + ':81/');
+
+    // Handle any errors that occur.
+    socket.onerror = function (error) {
+        console.log('WebSocket Error: ' + JSON.stringify(error));
+        socketClosed = true;
+    };
+
+    // Handle messages sent by the server.
+    socket.onmessage = function (event) {
+
+        try {
+            data = JSON.parse(event.data);
+            document.getElementById("timestr").innerHTML = data["time"];
+            document.getElementById("updatetimestr").innerHTML = "Uptime: " + data["uptime"];
+            document.getElementById("datetimesync").innerHTML = "Last NTP sync at " + data["ntp"];
+                 
+        } catch (e) {
+            if (e instanceof SyntaxError ) {
+                console.log("SE error: ", event.data, " mesg: ", e.message);
+            } else {
+                console.log("Other exception: ", e.message);
+           }
+        }
+    };
+
+
+    // Show a disconnected message when the WebSocket is closed.
+    socket.onclose = function (event) {
+        document.getElementById("updatetimestr").value = 'Disconnected from WebSocket.';
+        socketClosed = true;
+    };
+
+
+    window.onload = function () {
+
+        startWebsocket();
+    
+        window.onfocus = function () {
+            if (socketClosed) {
+                startWebsocket();
+            }
+        };
+    
+    };
+    
+
+}
+
+
+
