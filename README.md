@@ -103,7 +103,7 @@ On first boot, or unable to connect to the configured Wifi network, the Wifi man
 
 Once connected to a Wifi point, the code will enter a boot process connectiing to the wifi and NTP server.    
 
-Once the boots are complete, a 10 second countdown will be shown on the console for enter configuration mode.  Now press any key to enter configuration then browse to http://clock.local/   
+Once the boots are complete, a 10 second countdown will be shown on the console for enter configuration mode.  Now press any key to enter configuration then browse to http://myclock.local/   
 
 The webpage will now look like the following, enter the positions of the:
 * Hour hand
@@ -112,8 +112,6 @@ The webpage will now look like the following, enter the positions of the:
 * The Timezone will default to your browsers timezone.
 
 To save the configuration press submit button.
-
-hitting Submit.
 
 ![Clock Setup](images/Setup.png)
 
@@ -184,8 +182,6 @@ In the event that no one value seems to work when increasing/decreasing by 5:
 
 ## Future improvements
 
-* Bug: Handle case that NTP is 24hr format but the clock hands are 12 hours.
-    * Behaviour that occurs is that the clock advances 12 hours until it is internally consistent.
 * Implement a slow tick to indicate when clock is waiting for time to catch-up  
     * e.g. 2 ticks within a second, then wait 9 seconds
 * Configure via the webpage:
