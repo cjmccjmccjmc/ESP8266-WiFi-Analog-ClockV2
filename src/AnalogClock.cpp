@@ -40,6 +40,7 @@ const char* CLOCK_URL = "/clock";
 const char* CONFIG_API = "/api/config";
 const char* TZ_JSON = "/timezone.json";
 const char* APP_JS = "/app.js";
+const char* FORBID_URL = "/forbid";
 
 const uint16_t HOUR = 0x0000;                         // address in EERAM for analogClkHour
 const uint16_t MINUTE = HOUR+1;                         // address in EERAM for analogClkMinute
@@ -180,6 +181,7 @@ void setup() {
    analogClkServer.on("/", handleRoot);
    analogClkServer.serveStatic(CONFIG_URL, LittleFS, "/config.html");
    analogClkServer.serveStatic(CLOCK_URL, LittleFS, "/main.html");
+   analogClkServer.serveStatic(FORBID_URL, LittleFS, "/forbid.html");
    analogClkServer.serveStatic(TZ_JSON, LittleFS, "/tz.json");
    analogClkServer.serveStatic(APP_JS, LittleFS, "/app.js");
 
@@ -398,7 +400,9 @@ void pulseCoil() {
 // second hand needs to be advanced
 //--------------------------------------------------------------------------
 void checkClock() {
-  time_t analogClkTime = makeTime({analogClkSecond,analogClkMinute,analogClkHour,analogClkWeekday,analogClkDay,analogClkMonth,(analogClkYear+30)});
+
+  // Year is adjusted by 30 to reflect offset from 1970.
+  time_t analogClkTime = makeTime({analogClkSecond,analogClkMinute,analogClkHour,analogClkWeekday,analogClkDay,analogClkMonth,(analogClkYear+(uint8_t)30)});
   if (analogClkTime < now()) {                    // if the analog clock is behind the actual time and needs to be advanced...
 
     // Only tigger an advance if less than minimum gap to prevent too fast advance.
@@ -458,8 +462,6 @@ void handleRoot() {
 // Handles save requests.
 //--------------------------------------------------------------------------
 void handleSave() {
-
-  Serial.println("Entered handle save");
 
   if ( setupComplete ) {
     // Return error to prevent if step. 

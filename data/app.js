@@ -87,6 +87,8 @@ function onSave() {
     }).then(function (response) {
         if (response.ok) {
             window.location.replace("/");
+        } else if (response.status == 403) {
+            window.location.replace("/forbid");
         } else {
             document.getElementById('statusmessage').value = "Error saving, response logged to console";
             console.log(response)
